@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Filter, SortAsc } from 'lucide-react';
-import RetreatCard from '../components/RetreatCard';
+import RetreatCard from '../components/common/RetreatCard';
 import type { Retreat } from '../types';
 
 const RetreatListing: React.FC = () => {
@@ -14,30 +14,18 @@ const RetreatListing: React.FC = () => {
   // Mock data - This will be replaced with Supabase data
   const retreats: Retreat[] = [
     {
-      id: 1,
+      id: "1",
+      owner_id: "host1",
       title: "Mountain Zen Retreat",
       description: "A peaceful mountain retreat focused on mindfulness and meditation",
-      location: {
-        city: "Swiss Alps",
-        country: "Switzerland",
-        coordinates: {
-          lat: 46.8182,
-          lng: 8.2275
-        }
-      },
-      price: {
-        amount: 299,
-        currency: "USD"
-      },
-      duration: 7,
-      startDate: "2024-05-01",
-      endDate: "2024-05-07",
-      type: ["Meditation", "Yoga"],
+      location: "Swiss Alps, Switzerland",
+      price_per_night: 299,
+      type: "Meditation",
       amenities: ["Mountain View", "Spa", "Organic Meals"],
       images: ["https://images.unsplash.com/photo-1571896349842-33c89424de2d"],
-      hostId: "host1",
-      rating: 4.8,
-      reviewCount: 24
+      max_guests: 20,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     },
     // Add more mock retreats here
   ];
