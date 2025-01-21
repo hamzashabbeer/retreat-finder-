@@ -1,6 +1,6 @@
 import React from 'react';
 import { Star } from 'lucide-react';
-import type { Retreat } from '../types';
+import type { Retreat } from '../../types';
 
 interface RetreatCardProps {
   retreat: Retreat;
@@ -37,36 +37,27 @@ export default function RetreatCard({ retreat }: RetreatCardProps) {
       <div className="p-4">
         <div className="flex justify-between items-start mb-2">
           <h3 className="text-lg font-semibold text-gray-900">{retreat.title}</h3>
-          <div className="flex items-center gap-1">
-            <Star className="w-4 h-4 text-yellow-400 fill-current" />
-            <span className="text-sm text-gray-600">{retreat.rating}</span>
-          </div>
         </div>
         
         <p className="text-sm text-gray-600 mb-2">
-          {retreat.location.city}, {retreat.location.country}
+          {retreat.location}
         </p>
         
         <div className="flex flex-wrap gap-2 mb-3">
-          {retreat.type.map((type) => (
-            <span
-              key={type}
-              className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full"
-            >
-              {type}
-            </span>
-          ))}
+          <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+            {retreat.type}
+          </span>
         </div>
         
         <div className="flex justify-between items-center">
           <div>
             <span className="text-lg font-semibold text-gray-900">
-              ${retreat.price.amount}
+              ${retreat.price_per_night}
             </span>
-            <span className="text-sm text-gray-600"> / person</span>
+            <span className="text-sm text-gray-600"> / night</span>
           </div>
           <span className="text-sm text-gray-600">
-            {retreat.duration} days
+            Max {retreat.max_guests} guests
           </span>
         </div>
       </div>
