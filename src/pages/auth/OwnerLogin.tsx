@@ -17,18 +17,17 @@ const OwnerLogin: React.FC = () => {
 
     try {
       // Test connection first
+      console.log('Testing Supabase connection...');
       const isConnected = await testSupabaseConnection();
       if (!isConnected) {
         throw new Error('Unable to connect to Supabase. Please check your internet connection and try again.');
       }
 
-      console.log('Attempting to sign in with Supabase...', { email });
+      console.log('Connection successful, attempting to sign in...', { email });
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
-      console.log('Sign in response:', { authData, error: signInError });
 
       if (signInError) {
         console.error('Sign in error:', signInError);
@@ -89,6 +88,7 @@ const OwnerLogin: React.FC = () => {
     } catch (err) {
       console.error('Login process error:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    } finally {
       setIsLoading(false);
     }
   };

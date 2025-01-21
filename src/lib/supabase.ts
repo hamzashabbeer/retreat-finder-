@@ -26,15 +26,28 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-// Test connection function
+// Test connection function with detailed error reporting
 export const testSupabaseConnection = async () => {
+  console.log('Testing Supabase connection...');
+  console.log('Using URL:', supabaseUrl);
+  console.log('Anon Key exists:', !!supabaseAnonKey);
+  
   try {
-    const { data, error } = await supabase.from('profiles').select('count').single();
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('count')
+      .limit(1);
+      
     if (error) {
-      console.error('Supabase connection test failed:', error.message);
+      console.error('Supabase connection test failed:', {
+        error: error.message,
+        details: error.details,
+        hint: error.hint
+      });
       return false;
     }
-    console.log('Supabase connection successful!');
+    
+    console.log('Supabase connection successful!', data);
     return true;
   } catch (err) {
     console.error('Error testing Supabase connection:', err);
