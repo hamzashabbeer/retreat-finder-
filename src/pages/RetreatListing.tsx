@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Filter, SortAsc } from 'lucide-react';
-import RetreatCard from '../components/RetreatCard';
-import type { Retreat } from '../types';
+import RetreatCard from '@components/common/RetreatCard';
+import type { Retreat } from '@types';
 
 const RetreatListing: React.FC = () => {
   const [searchParams] = useSearchParams();
