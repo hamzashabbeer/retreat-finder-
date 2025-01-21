@@ -1,6 +1,6 @@
 import React from 'react';
-import SearchBar from '../components/SearchBar';
-import RetreatCard from '../components/RetreatCard';
+import SearchBar from '../components/forms/SearchBar';
+import RetreatCard from '../components/common/RetreatCard';
 import type { Retreat } from '../types';
 
 const HomePage: React.FC = () => {
