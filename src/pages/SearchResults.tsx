@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Filter, SlidersHorizontal, X } from 'lucide-react';
-import SearchBar from '../components/forms/SearchBar';
-import RetreatCard from '../components/common/RetreatCard';
+import SearchBar from '../components/SearchBar';
+import RetreatCard from '../components/RetreatCard';
 import { useRetreats } from '../hooks/useRetreats';
-import type { Retreat } from '../types';
 
 interface FilterState {
   priceRange: [number, number];
@@ -16,8 +15,6 @@ interface FilterState {
 export default function SearchResults() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(true);
-  const [retreats, setRetreats] = useState<Retreat[]>([]);
-  const { loading, error, fetchRetreats } = useRetreats();
   const [filters, setFilters] = useState<FilterState>({
     priceRange: [0, 1000],
     types: [],
@@ -25,23 +22,17 @@ export default function SearchResults() {
     rating: null,
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const data = await fetchRetreats({
-        location: searchParams.get('location') || undefined,
-        startDate: searchParams.get('startDate') || undefined,
-        endDate: searchParams.get('endDate') || undefined,
-        category: searchParams.get('type') || undefined,
-        priceMin: filters.priceRange[0],
-        priceMax: filters.priceRange[1],
-      });
-      setRetreats(data || []);
-    };
-    fetchData();
-  }, [searchParams, filters.priceRange, fetchRetreats]);
+  const { data: retreats, isLoading } = useRetreats({
+    location: searchParams.get('location') || undefined,
+    startDate: searchParams.get('startDate') || undefined,
+    endDate: searchParams.get('endDate') || undefined,
+    type: searchParams.get('type') || undefined,
+    minPrice: filters.priceRange[0],
+    maxPrice: filters.priceRange[1],
+  });
 
-  const handleSearch = (params: Record<string, string>) => {
-    setSearchParams(params);
+  const handleSearch = (searchParams: any) => {
+    setSearchParams(searchParams);
   };
 
   const handleFilterChange = (key: keyof FilterState, value: any) => {
@@ -57,28 +48,12 @@ export default function SearchResults() {
     });
   };
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error loading retreats</h2>
-          <p className="text-gray-600">{error.message}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Search Bar */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <SearchBar initialValues={{
-            location: searchParams.get('location') || '',
-            type: searchParams.get('type') || '',
-            startDate: searchParams.get('startDate') || '',
-            endDate: searchParams.get('endDate') || ''
-          }} />
+          <SearchBar onSearch={handleSearch} />
         </div>
       </div>
 
@@ -192,7 +167,7 @@ export default function SearchResults() {
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  {retreats.length} retreats found
+                  {retreats?.length || 0} retreats found
                   {searchParams.get('location') && (
                     <span className="text-gray-600 text-lg font-normal ml-2">
                       in {searchParams.get('location')}
@@ -210,12 +185,12 @@ export default function SearchResults() {
             </div>
 
             <div className={`grid ${showFilters ? 'grid-cols-2' : 'grid-cols-3'} gap-6`}>
-              {loading ? (
+              {isLoading ? (
                 <div className="col-span-full flex justify-center items-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent"></div>
                 </div>
-              ) : retreats.length > 0 ? (
-                retreats.map((retreat: Retreat) => (
+              ) : retreats?.length ? (
+                retreats.map((retreat) => (
                   <RetreatCard key={retreat.id} retreat={retreat} />
                 ))
               ) : (

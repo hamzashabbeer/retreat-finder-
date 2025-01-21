@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase, testSupabaseConnection } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 const OwnerLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -13,98 +13,85 @@ const OwnerLogin: React.FC = () => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    console.log('Starting login process...');
-
+    
     try {
-      // Test connection first
-      console.log('Testing Supabase connection...');
-      const isConnected = await testSupabaseConnection();
-      if (!isConnected) {
-        throw new Error('Unable to connect to Supabase. Please check your internet connection and try again.');
-      }
-
-      // Try to get current session first
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('Current session:', { session, error: sessionError });
-
-      console.log('Connection successful, attempting to sign in...', { email });
+      // Step 1: Try to sign in
+      console.log('🔑 Starting login process...');
+      console.log('📧 Attempting to sign in with email:', email);
+      
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      console.log('Sign in response:', { authData, error: signInError });
-
       if (signInError) {
-        console.error('Sign in error:', signInError);
-        throw new Error(signInError.message);
+        console.error('❌ Sign in error:', signInError);
+        throw new Error(`Login failed: ${signInError.message}`);
       }
 
       if (!authData?.user) {
-        console.error('No user data returned from auth');
-        throw new Error('No user data returned');
+        console.error('❌ No user data returned');
+        throw new Error('No user data returned from authentication');
       }
 
-      console.log('Successfully signed in, checking profile...', { userId: authData.user.id });
-      
-      // Check if profile exists and is an owner
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', authData.user.id)
-        .single();
+      console.log('✅ Successfully signed in user:', authData.user.id);
 
-      console.log('Profile check result:', { profileData, profileError });
+      try {
+        // Step 2: Try to create profile first (in case it doesn't exist)
+        console.log('👤 Attempting to create/verify profile...');
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: authData.user.id,
+              role: 'owner',
+              full_name: email.split('@')[0],
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          ])
+          .single();
 
-      if (profileError) {
-        console.log('Profile error detected:', profileError);
-        // If no profile exists, create one
-        if (profileError.code === 'PGRST116') {
-          console.log('Creating new profile...');
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .insert([
-              {
-                id: authData.user.id,
-                role: 'owner',
-                full_name: email.split('@')[0],
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              }
-            ])
-            .select()
-            .single();
-
-          if (createError) {
-            console.error('Profile creation error:', createError);
-            throw new Error('Failed to create profile: ' + createError.message);
+        if (insertError) {
+          console.log('ℹ️ Insert result:', insertError.message);
+          if (!insertError.message.includes('duplicate')) {
+            console.error('❌ Error creating profile:', insertError);
+            throw insertError;
           }
-          console.log('Profile created successfully:', newProfile);
-        } else {
-          console.error('Profile fetch error:', profileError);
-          throw new Error('Error fetching profile: ' + profileError.message);
         }
-      } else if (profileData.role !== 'owner') {
-        console.error('User is not an owner:', profileData);
-        throw new Error('Unauthorized: Only retreat owners can access this area');
-      }
 
-      console.log('All checks passed, navigating to dashboard...');
-      navigate('/dashboard');
+        // Step 3: Get the profile (whether it was just created or already existed)
+        console.log('🔍 Fetching user profile...');
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (profileError) {
+          console.error('❌ Error fetching profile:', profileError);
+          throw profileError;
+        }
+
+        console.log('📋 Profile data:', profileData);
+
+        if (profileData.role !== 'owner') {
+          console.error('❌ User is not an owner');
+          throw new Error('Unauthorized. Only retreat owners can access this area.');
+        }
+
+        // If we get here, the profile exists and is an owner
+        console.log('✅ Successfully verified owner profile');
+        navigate('/dashboard');
+      } catch (profileErr) {
+        console.error('❌ Profile error:', profileErr);
+        throw new Error('Error setting up user profile. Please contact support.');
+      }
     } catch (err) {
-      console.error('Login process error:', err);
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      console.error('❌ Login error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to login. Please try again.');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const testConnection = async () => {
-    try {
-      const { data, error } = await supabase.from('profiles').select('count').single();
-      return !error;
-    } catch {
-      return false;
     }
   };
 
@@ -167,20 +154,33 @@ const OwnerLogin: React.FC = () => {
               </div>
             </div>
 
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                  Remember me
+                </label>
+              </div>
+
+              <div className="text-sm">
+                <Link to="/auth/forgot-password" className="font-medium text-indigo-600 hover:text-indigo-500">
+                  Forgot your password?
+                </Link>
+              </div>
+            </div>
+
             <div>
               <button
                 type="submit"
                 disabled={isLoading}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
-                {isLoading ? (
-                  <div className="flex items-center">
-                    <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin mr-2"></div>
-                    Signing in...
-                  </div>
-                ) : (
-                  'Sign in'
-                )}
+                {isLoading ? 'Signing in...' : 'Sign in'}
               </button>
             </div>
           </form>

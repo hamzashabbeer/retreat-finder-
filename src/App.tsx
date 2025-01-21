@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuthContext } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/layout/Navbar';
 import HomePage from './pages/HomePage';
 import SearchResults from './pages/SearchResults';
@@ -13,15 +13,16 @@ import OwnerDashboard from './pages/OwnerDashboard';
 import { testSupabaseConnection } from './lib/supabase';
 
 /**
- * Protected route component that checks user authentication and role
+ * Protected Route Component
+ * 
+ * Wraps routes that require authentication and specific user roles.
+ * Redirects to login if user is not authenticated or not authorized.
  */
-interface ProtectedRouteProps {
+const ProtectedRoute: React.FC<{
   children: React.ReactNode;
   requiredRole?: 'owner' | 'customer';
-}
-
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
-  const { user, loading } = useAuthContext();
+}> = ({ children, requiredRole }) => {
+  const { user, loading } = useAuth();
 
   if (loading) {
     return <div>Loading...</div>;
@@ -39,9 +40,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
 };
 
 /**
- * Main App component with routing and authentication
+ * Main App Component
+ * 
+ * Provides authentication context and routing for the application.
+ * Includes protected routes for owner and customer specific pages.
  */
-function AppContent() {
+function App() {
   useEffect(() => {
     // Test Supabase connection on app load
     testSupabaseConnection().then(isConnected => {
@@ -54,39 +58,33 @@ function AppContent() {
   }, []);
 
   return (
-    <>
-      <Navbar />
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/search" element={<SearchResults />} />
-        <Route path="/retreats" element={<RetreatListing />} />
-        <Route path="/auth/customer/login" element={<CustomerLogin />} />
-        <Route path="/auth/customer/signup" element={<CustomerSignup />} />
-        <Route path="/auth/owner/login" element={<OwnerLogin />} />
-        <Route path="/auth/owner/signup" element={<OwnerSignup />} />
-
-        {/* Protected routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute requiredRole="owner">
-              <OwnerDashboard />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </>
-  );
-}
-
-/**
- * Root App component wrapped with providers
- */
-function App() {
-  return (
     <AuthProvider>
-      <AppContent />
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/search" element={<SearchResults />} />
+          <Route path="/retreats" element={<RetreatListing />} />
+          <Route path="/auth/customer/login" element={<CustomerLogin />} />
+          <Route path="/auth/customer/signup" element={<CustomerSignup />} />
+          <Route path="/auth/owner/login" element={<OwnerLogin />} />
+          <Route path="/auth/owner/signup" element={<OwnerSignup />} />
+
+          {/* Protected Owner Routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute requiredRole="owner">
+                <OwnerDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Add more routes as needed */}
+          {/* <Route path="/retreat/:id" element={<RetreatDetail />} /> */}
+        </Routes>
+      </div>
     </AuthProvider>
   );
 }

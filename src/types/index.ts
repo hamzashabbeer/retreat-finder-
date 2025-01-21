@@ -1,5 +1,45 @@
 /**
- * User profile types
+ * Core Types
+ */
+
+export interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+export interface Location {
+  city: string;
+  country: string;
+  coordinates: Coordinates;
+}
+
+export interface Price {
+  amount: number;
+  currency: string;
+}
+
+/**
+ * Retreat Types
+ */
+export interface Retreat {
+  id: number | string;
+  title: string;
+  description: string;
+  location: Location;
+  price: Price;
+  duration: number;
+  startDate: string;
+  endDate: string;
+  type: string[];
+  amenities: string[];
+  images: string[];
+  hostId: string;
+  rating: number;
+  reviewCount: number;
+}
+
+/**
+ * User Types
  */
 export interface UserProfile {
   id: string;
@@ -10,25 +50,7 @@ export interface UserProfile {
 }
 
 /**
- * Retreat types
- */
-export interface Retreat {
-  id: string;
-  owner_id: string;
-  title: string;
-  description: string;
-  location: string;
-  price_per_night: number;
-  type: string;
-  amenities: string[];
-  images: string[];
-  max_guests: number;
-  created_at: string;
-  updated_at: string;
-}
-
-/**
- * Booking types
+ * Booking Types
  */
 export interface Booking {
   id: string;
@@ -43,48 +65,37 @@ export interface Booking {
 }
 
 /**
- * Search parameters type
+ * Search and Filter Types
  */
-export interface SearchParams {
-  location?: string;
-  category?: string;
-  startDate?: string;
-  endDate?: string;
-  priceMin?: number;
-  priceMax?: number;
-  guests?: number;
-}
-
-/**
- * Authentication types
- */
-export interface AuthResponse {
-  user: UserProfile | null;
-  error: Error | null;
-}
-
-/**
- * Form types
- */
-export interface LoginFormData {
-  email: string;
-  password: string;
-}
-
-export interface SignupFormData extends LoginFormData {
-  full_name: string;
-  role: 'owner' | 'customer';
-}
-
 export interface SearchFilters {
   location?: string;
-  dateRange?: {
-    start: Date;
-    end: Date;
-  };
-  priceRange?: {
-    min: number;
-    max: number;
-  };
-  types?: string[];
+  startDate?: string;
+  endDate?: string;
+  type?: string[];
+  priceRange?: [number, number];
+  amenities?: string[];
+  duration?: string[];
+}
+
+/**
+ * Component Props Types
+ */
+export interface RetreatCardProps {
+  retreat: Retreat;
+}
+
+export interface SearchBarProps {
+  onSearch?: (filters: SearchFilters) => void;
+  className?: string;
+}
+
+/**
+ * Context Types
+ */
+export interface AuthContextType {
+  user: UserProfile | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  signUp: (email: string, password: string, role: 'owner' | 'customer') => Promise<void>;
 }

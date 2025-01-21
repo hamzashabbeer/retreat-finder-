@@ -1,66 +1,89 @@
 import React from 'react';
-import { Star } from 'lucide-react';
-import type { Retreat } from '../../types';
+import { Link } from 'react-router-dom';
+import { MapPin, Star, Calendar } from 'lucide-react';
+import type { RetreatCardProps } from '../../types';
 
-interface RetreatCardProps {
-  retreat: Retreat;
-}
+/**
+ * RetreatCard Component
+ * 
+ * Displays a retreat in a card format with image, title, location, price, and other details.
+ * Used in both the homepage for featured retreats and the listing page for search results.
+ */
+const RetreatCard: React.FC<RetreatCardProps> = ({ retreat }) => {
+  const {
+    id,
+    title,
+    location,
+    price,
+    duration,
+    startDate,
+    type,
+    images,
+    rating,
+    reviewCount
+  } = retreat;
 
-export default function RetreatCard({ retreat }: RetreatCardProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-      <div className="relative aspect-[4/3]">
-        <img
-          src={retreat.images[0]}
-          alt={retreat.title}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute top-4 right-4">
-          <button className="p-2 bg-white rounded-full shadow-md hover:scale-105 transition-transform">
-            <svg
-              className="w-5 h-5 text-gray-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
-      
-      <div className="p-4">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="text-lg font-semibold text-gray-900">{retreat.title}</h3>
-        </div>
-        
-        <p className="text-sm text-gray-600 mb-2">
-          {retreat.location}
-        </p>
-        
-        <div className="flex flex-wrap gap-2 mb-3">
-          <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
-            {retreat.type}
-          </span>
-        </div>
-        
-        <div className="flex justify-between items-center">
-          <div>
-            <span className="text-lg font-semibold text-gray-900">
-              ${retreat.price_per_night}
-            </span>
-            <span className="text-sm text-gray-600"> / night</span>
+    <Link to={`/retreat/${id}`} className="group">
+      <div className="bg-white rounded-lg shadow-md overflow-hidden transition-shadow hover:shadow-lg">
+        {/* Image */}
+        <div className="relative aspect-[4/3] overflow-hidden">
+          <img
+            src={images[0]}
+            alt={title}
+            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          />
+          <div className="absolute top-4 right-4 bg-white px-2 py-1 rounded-full text-sm font-medium">
+            ${price.amount}/night
           </div>
-          <span className="text-sm text-gray-600">
-            Max {retreat.max_guests} guests
-          </span>
+        </div>
+
+        {/* Content */}
+        <div className="p-4">
+          {/* Title and Rating */}
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-600">
+              {title}
+            </h3>
+            <div className="flex items-center">
+              <Star className="w-4 h-4 text-yellow-400 fill-current" />
+              <span className="ml-1 text-sm text-gray-600">
+                {rating} ({reviewCount})
+              </span>
+            </div>
+          </div>
+
+          {/* Location */}
+          <div className="flex items-center text-gray-500 mb-2">
+            <MapPin className="w-4 h-4 mr-1" />
+            <span className="text-sm">
+              {location.city}, {location.country}
+            </span>
+          </div>
+
+          {/* Duration and Date */}
+          <div className="flex items-center text-gray-500 mb-3">
+            <Calendar className="w-4 h-4 mr-1" />
+            <span className="text-sm">
+              {duration} days • Starts {new Date(startDate).toLocaleDateString()}
+            </span>
+          </div>
+
+          {/* Types */}
+          <div className="flex flex-wrap gap-2">
+            {type.map((t) => (
+              <span
+                key={t}
+                className="px-2 py-1 text-xs font-medium bg-indigo-50 text-indigo-600 rounded-full"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
-}
+};
+
+export default RetreatCard;

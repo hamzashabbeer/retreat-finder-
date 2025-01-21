@@ -1,157 +1,157 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Retreat, SearchParams } from '../types';
+import type { Retreat, SearchFilters } from '../types';
 
 /**
- * Custom hook for handling retreat operations
+ * useRetreats Hook
+ * 
+ * Custom hook for managing retreats data, including:
+ * - Fetching retreats with filters
+ * - Creating new retreats
+ * - Updating existing retreats
+ * - Deleting retreats
  */
 export const useRetreats = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [retreats, setRetreats] = useState<Retreat[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Fetch retreats with optional search parameters
-   */
-  const fetchRetreats = async (searchParams?: SearchParams) => {
-    setLoading(true);
+  // Fetch retreats with optional filters
+  const fetchRetreats = async (filters?: SearchFilters) => {
     try {
+      setLoading(true);
+      setError(null);
+
       let query = supabase
         .from('retreats')
         .select('*');
 
-      // Apply filters based on search parameters
-      if (searchParams?.location) {
-        query = query.ilike('location', `%${searchParams.location}%`);
-      }
-      if (searchParams?.category) {
-        query = query.eq('type', searchParams.category);
-      }
-      if (searchParams?.priceMin) {
-        query = query.gte('price_per_night', searchParams.priceMin);
-      }
-      if (searchParams?.priceMax) {
-        query = query.lte('price_per_night', searchParams.priceMax);
-      }
-      if (searchParams?.guests) {
-        query = query.gte('max_guests', searchParams.guests);
+      // Apply filters
+      if (filters) {
+        if (filters.location) {
+          query = query.ilike('location->>city', `%${filters.location}%`);
+        }
+
+        if (filters.startDate) {
+          query = query.gte('start_date', filters.startDate);
+        }
+
+        if (filters.endDate) {
+          query = query.lte('end_date', filters.endDate);
+        }
+
+        if (filters.type && filters.type.length > 0) {
+          query = query.contains('type', filters.type);
+        }
+
+        if (filters.priceRange) {
+          query = query
+            .gte('price_per_night', filters.priceRange[0])
+            .lte('price_per_night', filters.priceRange[1]);
+        }
+
+        if (filters.amenities && filters.amenities.length > 0) {
+          query = query.contains('amenities', filters.amenities);
+        }
       }
 
-      const { data, error: fetchError } = await query;
+      const { data, error } = await query;
 
-      if (fetchError) throw fetchError;
-      return data;
+      if (error) throw error;
+      setRetreats(data || []);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch retreats'));
-      return [];
+      console.error('Error fetching retreats:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch retreats');
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Create a new retreat
-   */
-  const createRetreat = async (retreat: Omit<Retreat, 'id' | 'created_at' | 'updated_at'>) => {
-    setLoading(true);
+  // Create a new retreat
+  const createRetreat = async (retreat: Omit<Retreat, 'id'>) => {
     try {
-      const { data, error: createError } = await supabase
+      setLoading(true);
+      setError(null);
+
+      const { data, error } = await supabase
         .from('retreats')
         .insert([retreat])
         .select()
         .single();
 
-      if (createError) throw createError;
-      return { data, error: null };
+      if (error) throw error;
+      setRetreats(prev => [...prev, data]);
+      return data;
     } catch (err) {
-      return { 
-        data: null, 
-        error: err instanceof Error ? err : new Error('Failed to create retreat')
-      };
+      console.error('Error creating retreat:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create retreat');
+      throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Update an existing retreat
-   */
-  const updateRetreat = async (id: string, updates: Partial<Retreat>) => {
-    setLoading(true);
+  // Update an existing retreat
+  const updateRetreat = async (id: string | number, updates: Partial<Retreat>) => {
     try {
-      const { data, error: updateError } = await supabase
+      setLoading(true);
+      setError(null);
+
+      const { data, error } = await supabase
         .from('retreats')
         .update(updates)
         .eq('id', id)
         .select()
         .single();
 
-      if (updateError) throw updateError;
-      return { data, error: null };
+      if (error) throw error;
+      setRetreats(prev => prev.map(retreat => 
+        retreat.id === id ? { ...retreat, ...data } : retreat
+      ));
+      return data;
     } catch (err) {
-      return {
-        data: null,
-        error: err instanceof Error ? err : new Error('Failed to update retreat')
-      };
+      console.error('Error updating retreat:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update retreat');
+      throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Delete a retreat
-   */
-  const deleteRetreat = async (id: string) => {
-    setLoading(true);
+  // Delete a retreat
+  const deleteRetreat = async (id: string | number) => {
     try {
-      const { error: deleteError } = await supabase
+      setLoading(true);
+      setError(null);
+
+      const { error } = await supabase
         .from('retreats')
         .delete()
         .eq('id', id);
 
-      if (deleteError) throw deleteError;
-      return { error: null };
+      if (error) throw error;
+      setRetreats(prev => prev.filter(retreat => retreat.id !== id));
     } catch (err) {
-      return {
-        error: err instanceof Error ? err : new Error('Failed to delete retreat')
-      };
+      console.error('Error deleting retreat:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete retreat');
+      throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Get a single retreat by ID
-   */
-  const getRetreatById = async (id: string) => {
-    setLoading(true);
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('retreats')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (fetchError) throw fetchError;
-      return { data, error: null };
-    } catch (err) {
-      return {
-        data: null,
-        error: err instanceof Error ? err : new Error('Failed to fetch retreat')
-      };
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Fetch retreats on mount
+  useEffect(() => {
+    fetchRetreats();
+  }, []);
 
   return {
+    retreats,
     loading,
     error,
     fetchRetreats,
     createRetreat,
     updateRetreat,
     deleteRetreat,
-    getRetreatById
   };
 };
-
-export default useRetreats;
