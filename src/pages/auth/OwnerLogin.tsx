@@ -13,33 +13,44 @@ const OwnerLogin: React.FC = () => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    
+
     try {
-      // Step 1: Try to sign in
-      console.log('🔑 Starting login process...');
-      console.log('📧 Attempting to sign in with email:', email);
-      
+      // Test Supabase connection first
+      const isConnected = await testConnection();
+      if (!isConnected) {
+        throw new Error('Unable to connect to the server. Please check your internet connection.');
+      }
+
+      // Step 1: Sign in
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (signInError) {
-        console.error('❌ Sign in error:', signInError);
-        throw new Error(`Login failed: ${signInError.message}`);
+        console.error('Sign in error:', signInError);
+        throw new Error(signInError.message);
       }
 
       if (!authData?.user) {
-        console.error('❌ No user data returned');
         throw new Error('No user data returned from authentication');
       }
 
-      console.log('✅ Successfully signed in user:', authData.user.id);
+      // Step 2: Get the profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
 
-      try {
-        // Step 2: Try to create profile first (in case it doesn't exist)
-        console.log('👤 Attempting to create/verify profile...');
-        const { error: insertError } = await supabase
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+        throw new Error('Error fetching user profile');
+      }
+
+      if (!profileData) {
+        // Create profile if it doesn't exist
+        const { error: createError } = await supabase
           .from('profiles')
           .insert([
             {
@@ -49,49 +60,32 @@ const OwnerLogin: React.FC = () => {
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             }
-          ])
-          .single();
+          ]);
 
-        if (insertError) {
-          console.log('ℹ️ Insert result:', insertError.message);
-          if (!insertError.message.includes('duplicate')) {
-            console.error('❌ Error creating profile:', insertError);
-            throw insertError;
-          }
+        if (createError) {
+          console.error('Profile creation error:', createError);
+          throw new Error('Error creating user profile');
         }
-
-        // Step 3: Get the profile (whether it was just created or already existed)
-        console.log('🔍 Fetching user profile...');
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', authData.user.id)
-          .single();
-
-        if (profileError) {
-          console.error('❌ Error fetching profile:', profileError);
-          throw profileError;
-        }
-
-        console.log('📋 Profile data:', profileData);
-
-        if (profileData.role !== 'owner') {
-          console.error('❌ User is not an owner');
-          throw new Error('Unauthorized. Only retreat owners can access this area.');
-        }
-
-        // If we get here, the profile exists and is an owner
-        console.log('✅ Successfully verified owner profile');
-        navigate('/dashboard');
-      } catch (profileErr) {
-        console.error('❌ Profile error:', profileErr);
-        throw new Error('Error setting up user profile. Please contact support.');
+      } else if (profileData.role !== 'owner') {
+        throw new Error('Unauthorized. Only retreat owners can access this area.');
       }
+
+      // Success - navigate to dashboard
+      navigate('/dashboard');
     } catch (err) {
-      console.error('❌ Login error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to login. Please try again.');
+      console.error('Login process error:', err);
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const testConnection = async () => {
+    try {
+      const { data, error } = await supabase.from('profiles').select('count').single();
+      return !error;
+    } catch {
+      return false;
     }
   };
 
@@ -154,33 +148,20 @@ const OwnerLogin: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                  Remember me
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <Link to="/auth/forgot-password" className="font-medium text-indigo-600 hover:text-indigo-500">
-                  Forgot your password?
-                </Link>
-              </div>
-            </div>
-
             <div>
               <button
                 type="submit"
                 disabled={isLoading}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
-                {isLoading ? 'Signing in...' : 'Sign in'}
+                {isLoading ? (
+                  <div className="flex items-center">
+                    <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin mr-2"></div>
+                    Signing in...
+                  </div>
+                ) : (
+                  'Sign in'
+                )}
               </button>
             </div>
           </form>
