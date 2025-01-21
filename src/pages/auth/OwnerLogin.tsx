@@ -13,22 +13,27 @@ const OwnerLogin: React.FC = () => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+    console.log('Starting login process...');
 
     try {
-      // Sign in
+      console.log('Attempting to sign in with Supabase...');
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (signInError) {
+        console.error('Sign in error:', signInError);
         throw new Error(signInError.message);
       }
 
       if (!authData?.user) {
+        console.error('No user data returned from auth');
         throw new Error('No user data returned');
       }
 
+      console.log('Successfully signed in, checking profile...');
+      
       // Check if profile exists and is an owner
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -36,9 +41,13 @@ const OwnerLogin: React.FC = () => {
         .eq('id', authData.user.id)
         .single();
 
+      console.log('Profile check result:', { profileData, profileError });
+
       if (profileError) {
+        console.log('Profile error detected:', profileError);
         // If no profile exists, create one
         if (profileError.code === 'PGRST116') {
+          console.log('Creating new profile...');
           const { error: createError } = await supabase
             .from('profiles')
             .insert([
@@ -52,20 +61,26 @@ const OwnerLogin: React.FC = () => {
             ]);
 
           if (createError) {
+            console.error('Profile creation error:', createError);
             throw new Error('Failed to create profile');
           }
+          console.log('Profile created successfully');
         } else {
+          console.error('Profile fetch error:', profileError);
           throw new Error('Error fetching profile');
         }
       } else if (profileData.role !== 'owner') {
+        console.error('User is not an owner:', profileData);
         throw new Error('Unauthorized: Only retreat owners can access this area');
       }
 
-      // Success - navigate to dashboard
+      console.log('All checks passed, navigating to dashboard...');
       navigate('/dashboard');
     } catch (err) {
+      console.error('Login process error:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
+      console.log('Login process completed');
       setIsLoading(false);
     }
   };
