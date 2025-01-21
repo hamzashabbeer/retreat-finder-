@@ -129,9 +129,7 @@ const OwnerDashboard: React.FC = () => {
         type: ["Meditation", "Yoga"],
         amenities: ["Mountain View", "Spa", "Organic Meals"],
         images: ["https://images.unsplash.com/photo-1571896349842-33c89424de2d"],
-        hostId: user.id,
-        rating: 0,
-        reviewCount: 0
+        hostId: user.id
       };
 
       console.log('Attempting to insert retreat:', newRetreat);
@@ -139,18 +137,21 @@ const OwnerDashboard: React.FC = () => {
       const { data, error: insertError } = await supabase
         .from('retreats')
         .insert([newRetreat])
-        .select()
-        .single();
+        .select();
 
       if (insertError) {
         console.error('Error inserting retreat:', insertError);
-        throw insertError;
+        throw new Error(`Failed to insert retreat: ${insertError.message}`);
       }
 
-      console.log('Successfully added retreat:', data);
+      if (!data || data.length === 0) {
+        throw new Error('No data returned after inserting retreat');
+      }
+
+      console.log('Successfully added retreat:', data[0]);
 
       // Update local state
-      setRetreats(prev => [...prev, data]);
+      setRetreats(prev => [...prev, data[0]]);
       setStats(prev => ({
         ...prev,
         totalRetreats: prev.totalRetreats + 1,
@@ -158,7 +159,7 @@ const OwnerDashboard: React.FC = () => {
       }));
 
       // Navigate to edit page
-      navigate(`/retreats/${data.id}/edit`);
+      navigate(`/retreats/${data[0].id}/edit`);
 
     } catch (err) {
       console.error('Detailed error adding retreat:', err);

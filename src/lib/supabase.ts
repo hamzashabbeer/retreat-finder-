@@ -47,76 +47,108 @@ export const verifyDatabaseStructure = async () => {
   try {
     console.log('Verifying database structure...');
 
-    // Check if the retreats table exists
-    const { error: queryError } = await supabase
+    // First, try to create the table using SQL
+    const { error: createError } = await supabase.rpc('create_table_if_not_exists', {
+      table_sql: `
+        CREATE TABLE IF NOT EXISTS retreats (
+          id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+          title TEXT NOT NULL,
+          description TEXT,
+          location JSONB NOT NULL,
+          price JSONB NOT NULL,
+          duration INTEGER NOT NULL,
+          "startDate" TIMESTAMP WITH TIME ZONE NOT NULL,
+          "endDate" TIMESTAMP WITH TIME ZONE NOT NULL,
+          type TEXT[] NOT NULL,
+          amenities TEXT[] NOT NULL,
+          images TEXT[] NOT NULL,
+          "hostId" UUID REFERENCES auth.users(id),
+          rating DECIMAL(3,2) DEFAULT 0,
+          "reviewCount" INTEGER DEFAULT 0,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+        );
+
+        -- Enable RLS
+        ALTER TABLE retreats ENABLE ROW LEVEL SECURITY;
+
+        -- Policy for viewing retreats (public)
+        DO $$ 
+        BEGIN
+          IF NOT EXISTS (
+            SELECT FROM pg_policies WHERE tablename = 'retreats' AND policyname = 'Retreats are viewable by everyone'
+          ) THEN
+            CREATE POLICY "Retreats are viewable by everyone"
+              ON retreats FOR SELECT
+              USING (true);
+          END IF;
+        END $$;
+
+        -- Policy for inserting retreats
+        DO $$ 
+        BEGIN
+          IF NOT EXISTS (
+            SELECT FROM pg_policies WHERE tablename = 'retreats' AND policyname = 'Users can insert their own retreats'
+          ) THEN
+            CREATE POLICY "Users can insert their own retreats"
+              ON retreats FOR INSERT
+              WITH CHECK (auth.uid() = "hostId");
+          END IF;
+        END $$;
+
+        -- Policy for updating retreats
+        DO $$ 
+        BEGIN
+          IF NOT EXISTS (
+            SELECT FROM pg_policies WHERE tablename = 'retreats' AND policyname = 'Users can update their own retreats'
+          ) THEN
+            CREATE POLICY "Users can update their own retreats"
+              ON retreats FOR UPDATE
+              USING (auth.uid() = "hostId")
+              WITH CHECK (auth.uid() = "hostId");
+          END IF;
+        END $$;
+
+        -- Policy for deleting retreats
+        DO $$ 
+        BEGIN
+          IF NOT EXISTS (
+            SELECT FROM pg_policies WHERE tablename = 'retreats' AND policyname = 'Users can delete their own retreats'
+          ) THEN
+            CREATE POLICY "Users can delete their own retreats"
+              ON retreats FOR DELETE
+              USING (auth.uid() = "hostId");
+          END IF;
+        END $$;
+      `
+    });
+
+    if (createError) {
+      console.error('Error creating table:', createError);
+      
+      // If the RPC doesn't exist, we'll try direct SQL
+      const { error: directError } = await supabase.from('retreats').select('id').limit(1);
+      if (directError) {
+        console.error('Error checking retreats table:', directError);
+        return false;
+      }
+    }
+
+    // Verify the table exists and has the correct structure
+    const { data: tableInfo, error: tableError } = await supabase
       .from('retreats')
       .select('id')
       .limit(1);
 
-    if (queryError) {
-      console.log('Retreats table might not exist, attempting to create...');
-      
-      // Create the retreats table with the correct structure
-      const { error: createError } = await supabase.rpc('create_retreats_table', {
-        sql: `
-          CREATE TABLE IF NOT EXISTS retreats (
-            id BIGSERIAL PRIMARY KEY,
-            title TEXT NOT NULL,
-            description TEXT,
-            location JSONB NOT NULL,
-            price JSONB NOT NULL,
-            duration INTEGER NOT NULL,
-            startDate TIMESTAMP WITH TIME ZONE NOT NULL,
-            endDate TIMESTAMP WITH TIME ZONE NOT NULL,
-            type TEXT[] NOT NULL,
-            amenities TEXT[] NOT NULL,
-            images TEXT[] NOT NULL,
-            hostId UUID REFERENCES auth.users(id),
-            rating DECIMAL(3,2) DEFAULT 0,
-            reviewCount INTEGER DEFAULT 0,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-          );
-
-          -- Add RLS policies
-          ALTER TABLE retreats ENABLE ROW LEVEL SECURITY;
-
-          -- Policy for viewing retreats (public)
-          CREATE POLICY "Retreats are viewable by everyone"
-            ON retreats FOR SELECT
-            USING (true);
-
-          -- Policy for inserting retreats (authenticated users only)
-          CREATE POLICY "Users can insert their own retreats"
-            ON retreats FOR INSERT
-            WITH CHECK (auth.uid() = hostId);
-
-          -- Policy for updating retreats (owners only)
-          CREATE POLICY "Users can update their own retreats"
-            ON retreats FOR UPDATE
-            USING (auth.uid() = hostId)
-            WITH CHECK (auth.uid() = hostId);
-
-          -- Policy for deleting retreats (owners only)
-          CREATE POLICY "Users can delete their own retreats"
-            ON retreats FOR DELETE
-            USING (auth.uid() = hostId);
-        `
-      });
-
-      if (createError) {
-        console.error('Error creating retreats table:', createError);
-        return false;
-      }
-
-      console.log('Successfully created retreats table and policies');
-    } else {
-      console.log('Retreats table exists');
+    if (tableError) {
+      console.error('Error verifying table structure:', tableError);
+      return false;
     }
 
+    console.log('Database structure verified successfully');
     return true;
   } catch (error) {
-    console.error('Error verifying database structure:', error);
+    console.error('Error in verifyDatabaseStructure:', error);
     return false;
   }
 };
