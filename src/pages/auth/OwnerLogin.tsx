@@ -16,26 +16,29 @@ const OwnerLogin: React.FC = () => {
     
     try {
       // Step 1: Try to sign in
-      console.log('Attempting to sign in with email:', email);
+      console.log('🔑 Starting login process...');
+      console.log('📧 Attempting to sign in with email:', email);
+      
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (signInError) {
-        console.error('Sign in error:', signInError);
-        throw new Error('Invalid login credentials. Please check your email and password.');
+        console.error('❌ Sign in error:', signInError);
+        throw new Error(`Login failed: ${signInError.message}`);
       }
 
       if (!authData?.user) {
-        console.error('No user data returned');
+        console.error('❌ No user data returned');
         throw new Error('No user data returned from authentication');
       }
 
-      console.log('Successfully signed in user:', authData.user.id);
+      console.log('✅ Successfully signed in user:', authData.user.id);
 
       try {
         // Step 2: Try to create profile first (in case it doesn't exist)
+        console.log('👤 Attempting to create/verify profile...');
         const { error: insertError } = await supabase
           .from('profiles')
           .insert([
@@ -49,12 +52,16 @@ const OwnerLogin: React.FC = () => {
           ])
           .single();
 
-        if (insertError && !insertError.message.includes('duplicate')) {
-          console.error('Error creating profile:', insertError);
-          throw insertError;
+        if (insertError) {
+          console.log('ℹ️ Insert result:', insertError.message);
+          if (!insertError.message.includes('duplicate')) {
+            console.error('❌ Error creating profile:', insertError);
+            throw insertError;
+          }
         }
 
         // Step 3: Get the profile (whether it was just created or already existed)
+        console.log('🔍 Fetching user profile...');
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -62,23 +69,26 @@ const OwnerLogin: React.FC = () => {
           .single();
 
         if (profileError) {
-          console.error('Error fetching profile:', profileError);
+          console.error('❌ Error fetching profile:', profileError);
           throw profileError;
         }
 
+        console.log('📋 Profile data:', profileData);
+
         if (profileData.role !== 'owner') {
+          console.error('❌ User is not an owner');
           throw new Error('Unauthorized. Only retreat owners can access this area.');
         }
 
         // If we get here, the profile exists and is an owner
-        console.log('Successfully verified owner profile');
+        console.log('✅ Successfully verified owner profile');
         navigate('/dashboard');
       } catch (profileErr) {
-        console.error('Profile error:', profileErr);
+        console.error('❌ Profile error:', profileErr);
         throw new Error('Error setting up user profile. Please contact support.');
       }
     } catch (err) {
-      console.error('Login error:', err);
+      console.error('❌ Login error:', err);
       setError(err instanceof Error ? err.message : 'Failed to login. Please try again.');
     } finally {
       setIsLoading(false);

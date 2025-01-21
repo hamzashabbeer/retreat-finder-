@@ -25,3 +25,19 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true
   }
 });
+
+// Test connection function
+export const testSupabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase.from('profiles').select('count').single();
+    if (error) {
+      console.error('Supabase connection test failed:', error.message);
+      return false;
+    }
+    console.log('Supabase connection successful!');
+    return true;
+  } catch (err) {
+    console.error('Error testing Supabase connection:', err);
+    return false;
+  }
+};
