@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
 
@@ -7,29 +7,37 @@ import { Search } from 'lucide-react';
  */
 interface SearchParams {
   location: string;
-  category: string;
-  dateRange: {
-    startDate: string;
-    endDate: string;
-  };
+  type: string;
+  startDate: string;
+  endDate: string;
+}
+
+interface SearchBarProps {
+  initialValues?: SearchParams;
+  onSearch?: (params: SearchParams) => void;
 }
 
 /**
  * SearchBar component that provides search functionality for retreats
  * Allows users to search by location, category, and date range
  */
-export const SearchBar: React.FC = () => {
+export const SearchBar: React.FC<SearchBarProps> = ({ 
+  initialValues = {
+    location: '',
+    type: '',
+    startDate: '',
+    endDate: ''
+  },
+  onSearch
+}) => {
   const navigate = useNavigate();
   
   // State for search parameters
-  const [searchParams, setSearchParams] = useState<SearchParams>({
-    location: '',
-    category: '',
-    dateRange: {
-      startDate: '',
-      endDate: ''
-    }
-  });
+  const [searchParams, setSearchParams] = useState<SearchParams>(initialValues);
+
+  useEffect(() => {
+    setSearchParams(initialValues);
+  }, [initialValues]);
 
   /**
    * Handles form submission and navigation to search results
@@ -41,12 +49,16 @@ export const SearchBar: React.FC = () => {
     // Construct query parameters
     const queryParams = new URLSearchParams();
     if (searchParams.location) queryParams.set('location', searchParams.location);
-    if (searchParams.category) queryParams.set('category', searchParams.category);
-    if (searchParams.dateRange.startDate) queryParams.set('startDate', searchParams.dateRange.startDate);
-    if (searchParams.dateRange.endDate) queryParams.set('endDate', searchParams.dateRange.endDate);
+    if (searchParams.type) queryParams.set('type', searchParams.type);
+    if (searchParams.startDate) queryParams.set('startDate', searchParams.startDate);
+    if (searchParams.endDate) queryParams.set('endDate', searchParams.endDate);
 
-    // Navigate to search results with query parameters
-    navigate(`/retreats?${queryParams.toString()}`);
+    if (onSearch) {
+      onSearch(searchParams);
+    } else {
+      // Navigate to search results with query parameters
+      navigate(`/retreats?${queryParams.toString()}`);
+    }
   };
 
   /**
@@ -54,21 +66,11 @@ export const SearchBar: React.FC = () => {
    * @param field - Field to update
    * @param value - New value
    */
-  const handleInputChange = (field: keyof SearchParams | 'startDate' | 'endDate', value: string) => {
-    if (field === 'startDate' || field === 'endDate') {
-      setSearchParams(prev => ({
-        ...prev,
-        dateRange: {
-          ...prev.dateRange,
-          [field]: value
-        }
-      }));
-    } else {
-      setSearchParams(prev => ({
-        ...prev,
-        [field]: value
-      }));
-    }
+  const handleInputChange = (field: keyof SearchParams, value: string) => {
+    setSearchParams(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   return (
@@ -89,18 +91,18 @@ export const SearchBar: React.FC = () => {
           />
         </div>
 
-        {/* Category Select */}
+        {/* Type Select */}
         <div className="flex-1">
-          <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-            Category
+          <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
+            Type
           </label>
           <select
-            id="category"
-            value={searchParams.category}
-            onChange={(e) => handleInputChange('category', e.target.value)}
+            id="type"
+            value={searchParams.type}
+            onChange={(e) => handleInputChange('type', e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
           >
-            <option value="">All Categories</option>
+            <option value="">All Types</option>
             <option value="yoga">Yoga</option>
             <option value="meditation">Meditation</option>
             <option value="wellness">Wellness</option>
@@ -117,7 +119,7 @@ export const SearchBar: React.FC = () => {
             <input
               type="date"
               id="startDate"
-              value={searchParams.dateRange.startDate}
+              value={searchParams.startDate}
               onChange={(e) => handleInputChange('startDate', e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             />
@@ -129,7 +131,7 @@ export const SearchBar: React.FC = () => {
             <input
               type="date"
               id="endDate"
-              value={searchParams.dateRange.endDate}
+              value={searchParams.endDate}
               onChange={(e) => handleInputChange('endDate', e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             />
