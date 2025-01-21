@@ -15,65 +15,55 @@ const OwnerLogin: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Test Supabase connection first
-      const isConnected = await testConnection();
-      if (!isConnected) {
-        throw new Error('Unable to connect to the server. Please check your internet connection.');
-      }
-
-      // Step 1: Sign in
+      // Sign in
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (signInError) {
-        console.error('Sign in error:', signInError);
         throw new Error(signInError.message);
       }
 
       if (!authData?.user) {
-        throw new Error('No user data returned from authentication');
+        throw new Error('No user data returned');
       }
 
-      // Step 2: Get the profile
+      // Check if profile exists and is an owner
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('role')
         .eq('id', authData.user.id)
         .single();
 
       if (profileError) {
-        console.error('Profile fetch error:', profileError);
-        throw new Error('Error fetching user profile');
-      }
+        // If no profile exists, create one
+        if (profileError.code === 'PGRST116') {
+          const { error: createError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: authData.user.id,
+                role: 'owner',
+                full_name: email.split('@')[0],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }
+            ]);
 
-      if (!profileData) {
-        // Create profile if it doesn't exist
-        const { error: createError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: authData.user.id,
-              role: 'owner',
-              full_name: email.split('@')[0],
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }
-          ]);
-
-        if (createError) {
-          console.error('Profile creation error:', createError);
-          throw new Error('Error creating user profile');
+          if (createError) {
+            throw new Error('Failed to create profile');
+          }
+        } else {
+          throw new Error('Error fetching profile');
         }
       } else if (profileData.role !== 'owner') {
-        throw new Error('Unauthorized. Only retreat owners can access this area.');
+        throw new Error('Unauthorized: Only retreat owners can access this area');
       }
 
       // Success - navigate to dashboard
       navigate('/dashboard');
     } catch (err) {
-      console.error('Login process error:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
