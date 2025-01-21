@@ -1,62 +1,38 @@
 import React from 'react';
-import SearchBar from '../components/SearchBar';
-import RetreatCard from '../components/RetreatCard';
+import SearchBar from '../components/forms/SearchBar';
+import RetreatCard from '../components/common/RetreatCard';
 import type { Retreat } from '../types';
 
 const HomePage: React.FC = () => {
   // Mock data for featured retreats
   const featuredRetreats: Retreat[] = [
     {
-      id: 1,
+      id: "1",
+      owner_id: "host1",
       title: "Mountain Zen Retreat",
       description: "A peaceful mountain retreat focused on mindfulness and meditation",
-      location: {
-        city: "Swiss Alps",
-        country: "Switzerland",
-        coordinates: {
-          lat: 46.8182,
-          lng: 8.2275
-        }
-      },
-      price: {
-        amount: 299,
-        currency: "USD"
-      },
-      duration: 7,
-      startDate: "2024-05-01",
-      endDate: "2024-05-07",
-      type: ["Meditation", "Yoga"],
+      location: "Swiss Alps, Switzerland",
+      price_per_night: 299,
+      type: "Meditation",
       amenities: ["Mountain View", "Spa", "Organic Meals"],
       images: ["https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"],
-      hostId: "host1",
-      rating: 4.8,
-      reviewCount: 24
+      max_guests: 20,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     },
     {
-      id: 2,
+      id: "2",
+      owner_id: "host2",
       title: "Beachside Meditation",
       description: "Find inner peace with the sound of waves in beautiful Bali",
-      location: {
-        city: "Bali",
-        country: "Indonesia",
-        coordinates: {
-          lat: -8.4095,
-          lng: 115.1889
-        }
-      },
-      price: {
-        amount: 199,
-        currency: "USD"
-      },
-      duration: 5,
-      startDate: "2024-06-01",
-      endDate: "2024-06-05",
-      type: ["Meditation", "Wellness"],
+      location: "Bali, Indonesia",
+      price_per_night: 199,
+      type: "Meditation",
       amenities: ["Beach Access", "Pool", "Yoga Studio"],
       images: ["https://images.unsplash.com/photo-1540541338287-41700207dee6?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"],
-      hostId: "host2",
-      rating: 4.9,
-      reviewCount: 18
+      max_guests: 15,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }
   ];
 
