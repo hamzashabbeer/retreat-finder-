@@ -42,9 +42,94 @@ export const testSupabaseConnection = async () => {
   }
 };
 
+// Function to verify and create database structure
+export const verifyDatabaseStructure = async () => {
+  try {
+    console.log('Verifying database structure...');
+
+    // Check if the retreats table exists
+    const { error: queryError } = await supabase
+      .from('retreats')
+      .select('id')
+      .limit(1);
+
+    if (queryError) {
+      console.log('Retreats table might not exist, attempting to create...');
+      
+      // Create the retreats table with the correct structure
+      const { error: createError } = await supabase.rpc('create_retreats_table', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS retreats (
+            id BIGSERIAL PRIMARY KEY,
+            title TEXT NOT NULL,
+            description TEXT,
+            location JSONB NOT NULL,
+            price JSONB NOT NULL,
+            duration INTEGER NOT NULL,
+            startDate TIMESTAMP WITH TIME ZONE NOT NULL,
+            endDate TIMESTAMP WITH TIME ZONE NOT NULL,
+            type TEXT[] NOT NULL,
+            amenities TEXT[] NOT NULL,
+            images TEXT[] NOT NULL,
+            hostId UUID REFERENCES auth.users(id),
+            rating DECIMAL(3,2) DEFAULT 0,
+            reviewCount INTEGER DEFAULT 0,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+          );
+
+          -- Add RLS policies
+          ALTER TABLE retreats ENABLE ROW LEVEL SECURITY;
+
+          -- Policy for viewing retreats (public)
+          CREATE POLICY "Retreats are viewable by everyone"
+            ON retreats FOR SELECT
+            USING (true);
+
+          -- Policy for inserting retreats (authenticated users only)
+          CREATE POLICY "Users can insert their own retreats"
+            ON retreats FOR INSERT
+            WITH CHECK (auth.uid() = hostId);
+
+          -- Policy for updating retreats (owners only)
+          CREATE POLICY "Users can update their own retreats"
+            ON retreats FOR UPDATE
+            USING (auth.uid() = hostId)
+            WITH CHECK (auth.uid() = hostId);
+
+          -- Policy for deleting retreats (owners only)
+          CREATE POLICY "Users can delete their own retreats"
+            ON retreats FOR DELETE
+            USING (auth.uid() = hostId);
+        `
+      });
+
+      if (createError) {
+        console.error('Error creating retreats table:', createError);
+        return false;
+      }
+
+      console.log('Successfully created retreats table and policies');
+    } else {
+      console.log('Retreats table exists');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error verifying database structure:', error);
+    return false;
+  }
+};
+
 // Function to test connection and insert a test retreat
 export const testSupabaseAndInsertRetreat = async () => {
   try {
+    // First verify database structure
+    const structureOk = await verifyDatabaseStructure();
+    if (!structureOk) {
+      throw new Error('Database structure verification failed');
+    }
+
     console.log('Testing Supabase connection...');
     
     // First, test the connection by getting the current user

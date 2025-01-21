@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@lib/supabase';
+import { supabase, verifyDatabaseStructure } from '@lib/supabase';
 import { PlusCircle, Settings, Calendar, Users, BarChart } from 'lucide-react';
 import type { Retreat } from '@types';
 
@@ -29,8 +29,16 @@ const OwnerDashboard: React.FC = () => {
         setLoading(true);
         setError(null);
 
+        // Verify database structure first
+        const structureOk = await verifyDatabaseStructure();
+        if (!structureOk) {
+          throw new Error('Failed to verify database structure');
+        }
+
         // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        
         if (!user) {
           navigate('/auth/owner/login');
           return;
@@ -44,6 +52,7 @@ const OwnerDashboard: React.FC = () => {
 
         if (retreatsError) throw retreatsError;
         
+        console.log('Fetched retreats:', retreatsData);
         setRetreats(retreatsData || []);
         
         // Calculate stats
@@ -52,13 +61,15 @@ const OwnerDashboard: React.FC = () => {
           new Date(retreat.endDate) >= now
         ) || [];
 
-        // Fetch bookings (you'll need to create this table in Supabase)
+        // Fetch bookings
         const { data: bookingsData, error: bookingsError } = await supabase
           .from('bookings')
           .select('*')
           .eq('hostId', user.id);
 
-        if (bookingsError) throw bookingsError;
+        if (bookingsError && !bookingsError.message.includes('does not exist')) {
+          throw bookingsError;
+        }
 
         setStats({
           totalRetreats: retreatsData?.length || 0,
@@ -80,11 +91,21 @@ const OwnerDashboard: React.FC = () => {
 
   const handleAddRetreat = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      console.log('Starting to add retreat...');
+      
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('Error getting user:', userError);
+        throw userError;
+      }
+      
       if (!user) {
+        console.log('No user found, redirecting to login...');
         navigate('/auth/owner/login');
         return;
       }
+
+      console.log('Creating new retreat for user:', user.id);
 
       // Create a new retreat with default values
       const newRetreat = {
@@ -113,13 +134,20 @@ const OwnerDashboard: React.FC = () => {
         reviewCount: 0
       };
 
-      const { data, error } = await supabase
+      console.log('Attempting to insert retreat:', newRetreat);
+
+      const { data, error: insertError } = await supabase
         .from('retreats')
         .insert([newRetreat])
         .select()
         .single();
 
-      if (error) throw error;
+      if (insertError) {
+        console.error('Error inserting retreat:', insertError);
+        throw insertError;
+      }
+
+      console.log('Successfully added retreat:', data);
 
       // Update local state
       setRetreats(prev => [...prev, data]);
@@ -129,11 +157,11 @@ const OwnerDashboard: React.FC = () => {
         activeRetreats: prev.activeRetreats + 1
       }));
 
-      // Navigate to edit page (you'll need to create this)
+      // Navigate to edit page
       navigate(`/retreats/${data.id}/edit`);
 
     } catch (err) {
-      console.error('Error adding retreat:', err);
+      console.error('Detailed error adding retreat:', err);
       setError(err instanceof Error ? err.message : 'Failed to add retreat');
     }
   };
