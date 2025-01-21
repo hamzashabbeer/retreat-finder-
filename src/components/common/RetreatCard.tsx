@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Star, Calendar } from 'lucide-react';
-import type { RetreatCardProps } from '../../types';
+import type { RetreatCardProps } from '@types';
 
 /**
  * RetreatCard Component

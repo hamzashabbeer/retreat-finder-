@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import type { Retreat, SearchFilters } from '../types';
+import { supabase } from '@lib/supabase';
+import type { Retreat, SearchFilters } from '@types';
 
 /**
  * useRetreats Hook
