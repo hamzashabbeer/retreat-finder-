@@ -47,91 +47,72 @@ export const verifyDatabaseStructure = async () => {
   try {
     console.log('Verifying database structure...');
 
-    // First, try to create the table using SQL
-    const { error: createError } = await supabase.rpc('create_table_if_not_exists', {
-      table_sql: `
-        CREATE TABLE IF NOT EXISTS retreats (
-          id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-          title TEXT NOT NULL,
-          description TEXT,
-          location JSONB NOT NULL,
-          price JSONB NOT NULL,
-          duration INTEGER NOT NULL,
-          "startDate" TIMESTAMP WITH TIME ZONE NOT NULL,
-          "endDate" TIMESTAMP WITH TIME ZONE NOT NULL,
-          type TEXT[] NOT NULL,
-          amenities TEXT[] NOT NULL,
-          images TEXT[] NOT NULL,
-          "hostId" UUID REFERENCES auth.users(id),
-          rating DECIMAL(3,2) DEFAULT 0,
-          "reviewCount" INTEGER DEFAULT 0,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-        );
-
-        -- Enable RLS
-        ALTER TABLE retreats ENABLE ROW LEVEL SECURITY;
-
-        -- Policy for viewing retreats (public)
-        DO $$ 
-        BEGIN
-          IF NOT EXISTS (
-            SELECT FROM pg_policies WHERE tablename = 'retreats' AND policyname = 'Retreats are viewable by everyone'
-          ) THEN
-            CREATE POLICY "Retreats are viewable by everyone"
-              ON retreats FOR SELECT
-              USING (true);
-          END IF;
-        END $$;
-
-        -- Policy for inserting retreats
-        DO $$ 
-        BEGIN
-          IF NOT EXISTS (
-            SELECT FROM pg_policies WHERE tablename = 'retreats' AND policyname = 'Users can insert their own retreats'
-          ) THEN
-            CREATE POLICY "Users can insert their own retreats"
-              ON retreats FOR INSERT
-              WITH CHECK (auth.uid() = "hostId");
-          END IF;
-        END $$;
-
-        -- Policy for updating retreats
-        DO $$ 
-        BEGIN
-          IF NOT EXISTS (
-            SELECT FROM pg_policies WHERE tablename = 'retreats' AND policyname = 'Users can update their own retreats'
-          ) THEN
-            CREATE POLICY "Users can update their own retreats"
-              ON retreats FOR UPDATE
-              USING (auth.uid() = "hostId")
-              WITH CHECK (auth.uid() = "hostId");
-          END IF;
-        END $$;
-
-        -- Policy for deleting retreats
-        DO $$ 
-        BEGIN
-          IF NOT EXISTS (
-            SELECT FROM pg_policies WHERE tablename = 'retreats' AND policyname = 'Users can delete their own retreats'
-          ) THEN
-            CREATE POLICY "Users can delete their own retreats"
-              ON retreats FOR DELETE
-              USING (auth.uid() = "hostId");
-          END IF;
-        END $$;
-      `
-    });
-
+    // Try to create the table directly
+    const { error: createError } = await supabase.from('retreats').select('id').limit(1);
+    
     if (createError) {
-      console.error('Error creating table:', createError);
+      console.log('Retreats table might not exist, creating it...');
       
-      // If the RPC doesn't exist, we'll try direct SQL
-      const { error: directError } = await supabase.from('retreats').select('id').limit(1);
-      if (directError) {
-        console.error('Error checking retreats table:', directError);
+      // Create the table using raw SQL
+      const { error: sqlError } = await supabase.rpc('exec', {
+        sql: `
+          -- Drop existing policies if they exist
+          DROP POLICY IF EXISTS "Retreats are viewable by everyone" ON retreats;
+          DROP POLICY IF EXISTS "Users can insert their own retreats" ON retreats;
+          DROP POLICY IF EXISTS "Users can update their own retreats" ON retreats;
+          DROP POLICY IF EXISTS "Users can delete their own retreats" ON retreats;
+
+          -- Create or replace the table
+          CREATE TABLE IF NOT EXISTS retreats (
+            id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+            title TEXT NOT NULL,
+            description TEXT,
+            location JSONB NOT NULL,
+            price JSONB NOT NULL,
+            duration INTEGER NOT NULL,
+            "startDate" TIMESTAMP WITH TIME ZONE NOT NULL,
+            "endDate" TIMESTAMP WITH TIME ZONE NOT NULL,
+            type TEXT[] NOT NULL,
+            amenities TEXT[] NOT NULL,
+            images TEXT[] NOT NULL,
+            "hostId" UUID REFERENCES auth.users(id),
+            rating DECIMAL(3,2) DEFAULT 0,
+            "reviewCount" INTEGER DEFAULT 0,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+          );
+
+          -- Enable RLS
+          ALTER TABLE retreats ENABLE ROW LEVEL SECURITY;
+
+          -- Create policies
+          CREATE POLICY "Retreats are viewable by everyone"
+            ON retreats FOR SELECT
+            USING (true);
+
+          CREATE POLICY "Users can insert their own retreats"
+            ON retreats FOR INSERT
+            WITH CHECK (auth.uid() = "hostId");
+
+          CREATE POLICY "Users can update their own retreats"
+            ON retreats FOR UPDATE
+            USING (auth.uid() = "hostId")
+            WITH CHECK (auth.uid() = "hostId");
+
+          CREATE POLICY "Users can delete their own retreats"
+            ON retreats FOR DELETE
+            USING (auth.uid() = "hostId");
+        `
+      });
+
+      if (sqlError) {
+        console.error('Error creating table with SQL:', sqlError);
         return false;
       }
+
+      console.log('Successfully created retreats table and policies');
+    } else {
+      console.log('Retreats table exists');
     }
 
     // Verify the table exists and has the correct structure

@@ -10,6 +10,8 @@ import OwnerLogin from './pages/auth/OwnerLogin';
 import OwnerSignup from './pages/auth/OwnerSignup';
 import RetreatListing from './pages/RetreatListing';
 import OwnerDashboard from './pages/OwnerDashboard';
+import RetreatDetails from './pages/RetreatDetails';
+import AddEditRetreat from './pages/AddEditRetreat';
 import { testSupabaseConnection } from './lib/supabase';
 
 /**
@@ -66,6 +68,9 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/search" element={<SearchResults />} />
           <Route path="/retreats" element={<RetreatListing />} />
+          <Route path="/retreats/:id" element={<RetreatDetails />} />
+          <Route path="/retreats/new" element={<AddEditRetreat />} />
+          <Route path="/retreats/:id/edit" element={<AddEditRetreat />} />
           <Route path="/auth/customer/login" element={<CustomerLogin />} />
           <Route path="/auth/customer/signup" element={<CustomerSignup />} />
           <Route path="/auth/owner/login" element={<OwnerLogin />} />
