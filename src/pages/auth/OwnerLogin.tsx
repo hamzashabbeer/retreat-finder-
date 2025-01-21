@@ -23,11 +23,17 @@ const OwnerLogin: React.FC = () => {
         throw new Error('Unable to connect to Supabase. Please check your internet connection and try again.');
       }
 
+      // Try to get current session first
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Current session:', { session, error: sessionError });
+
       console.log('Connection successful, attempting to sign in...', { email });
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+
+      console.log('Sign in response:', { authData, error: signInError });
 
       if (signInError) {
         console.error('Sign in error:', signInError);

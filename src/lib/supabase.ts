@@ -33,21 +33,33 @@ export const testSupabaseConnection = async () => {
   console.log('Anon Key exists:', !!supabaseAnonKey);
   
   try {
-    const { data, error } = await supabase
+    // First try a simple health check
+    const { error: healthError } = await supabase.from('profiles').select('count');
+    if (healthError) {
+      console.error('Health check failed:', healthError);
+      return false;
+    }
+
+    // Try to get the current session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    console.log('Session check:', { session, error: sessionError });
+
+    // Try a simple query
+    const { error: queryError } = await supabase
       .from('profiles')
-      .select('count')
+      .select('*')
       .limit(1);
       
-    if (error) {
-      console.error('Supabase connection test failed:', {
-        error: error.message,
-        details: error.details,
-        hint: error.hint
+    if (queryError) {
+      console.error('Query test failed:', {
+        error: queryError.message,
+        details: queryError.details,
+        hint: queryError.hint
       });
       return false;
     }
     
-    console.log('Supabase connection successful!', data);
+    console.log('Supabase connection successful!');
     return true;
   } catch (err) {
     console.error('Error testing Supabase connection:', err);
