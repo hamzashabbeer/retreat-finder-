@@ -1,7 +1,7 @@
 import React from 'react';
-import SearchBar from '../components/forms/SearchBar';
-import RetreatCard from '../components/common/RetreatCard';
-import type { Retreat } from '../types';
+import SearchBar from '@components/forms/SearchBar';
+import RetreatCard from '@components/common/RetreatCard';
+import type { Retreat } from '@types';
 
 const HomePage: React.FC = () => {
   // Mock data for featured retreats
