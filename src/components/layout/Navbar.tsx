@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase } from '@lib/supabase';
 
 /**
  * Navigation bar component that displays the main navigation links and authentication status
