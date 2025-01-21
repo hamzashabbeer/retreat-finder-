@@ -4,18 +4,18 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl) {
-  throw new Error('Missing VITE_SUPABASE_URL environment variable');
+  throw new Error('Missing VITE_SUPABASE_URL');
 }
 
 if (!supabaseAnonKey) {
-  throw new Error('Missing VITE_SUPABASE_ANON_KEY environment variable');
+  throw new Error('Missing VITE_SUPABASE_ANON_KEY');
 }
 
 // Validate URL format
 try {
   new URL(supabaseUrl);
-} catch (error) {
-  throw new Error(`Invalid VITE_SUPABASE_URL: ${supabaseUrl}`);
+} catch (err) {
+  throw new Error('Invalid VITE_SUPABASE_URL format');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -42,95 +42,133 @@ export const testSupabaseConnection = async () => {
   }
 };
 
-// Function to verify and create database structure
+/**
+ * Verifies and sets up the necessary database structure
+ * This includes creating tables and setting up RLS policies
+ */
 export const verifyDatabaseStructure = async () => {
   try {
     console.log('Verifying database structure...');
 
-    // Try to create the table directly
-    const { error: createError } = await supabase.from('retreats').select('id').limit(1);
-    
-    if (createError) {
-      console.log('Retreats table might not exist, creating it...');
-      
-      // Create the table using raw SQL
-      const { error: sqlError } = await supabase.rpc('exec', {
-        sql: `
-          -- Drop existing policies if they exist
-          DROP POLICY IF EXISTS "Retreats are viewable by everyone" ON retreats;
-          DROP POLICY IF EXISTS "Users can insert their own retreats" ON retreats;
-          DROP POLICY IF EXISTS "Users can update their own retreats" ON retreats;
-          DROP POLICY IF EXISTS "Users can delete their own retreats" ON retreats;
+    // Drop existing tables if they exist
+    const { error: dropBookingsError } = await supabase.rpc('drop_table_if_exists', {
+      table_name: 'bookings'
+    });
 
-          -- Create or replace the table
-          CREATE TABLE IF NOT EXISTS retreats (
-            id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-            title TEXT NOT NULL,
-            description TEXT,
-            location JSONB NOT NULL,
-            price JSONB NOT NULL,
-            duration INTEGER NOT NULL,
-            "startDate" TIMESTAMP WITH TIME ZONE NOT NULL,
-            "endDate" TIMESTAMP WITH TIME ZONE NOT NULL,
-            type TEXT[] NOT NULL,
-            amenities TEXT[] NOT NULL,
-            images TEXT[] NOT NULL,
-            "hostId" UUID REFERENCES auth.users(id),
-            rating DECIMAL(3,2) DEFAULT 0,
-            "reviewCount" INTEGER DEFAULT 0,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-          );
-
-          -- Enable RLS
-          ALTER TABLE retreats ENABLE ROW LEVEL SECURITY;
-
-          -- Create policies
-          CREATE POLICY "Retreats are viewable by everyone"
-            ON retreats FOR SELECT
-            USING (true);
-
-          CREATE POLICY "Users can insert their own retreats"
-            ON retreats FOR INSERT
-            WITH CHECK (auth.uid() = "hostId");
-
-          CREATE POLICY "Users can update their own retreats"
-            ON retreats FOR UPDATE
-            USING (auth.uid() = "hostId")
-            WITH CHECK (auth.uid() = "hostId");
-
-          CREATE POLICY "Users can delete their own retreats"
-            ON retreats FOR DELETE
-            USING (auth.uid() = "hostId");
-        `
-      });
-
-      if (sqlError) {
-        console.error('Error creating table with SQL:', sqlError);
-        return false;
-      }
-
-      console.log('Successfully created retreats table and policies');
-    } else {
-      console.log('Retreats table exists');
+    if (dropBookingsError && !dropBookingsError.message.includes('does not exist')) {
+      console.error('Error dropping bookings table:', dropBookingsError);
     }
 
-    // Verify the table exists and has the correct structure
-    const { data: tableInfo, error: tableError } = await supabase
-      .from('retreats')
-      .select('id')
-      .limit(1);
+    const { error: dropRetreatsError } = await supabase.rpc('drop_table_if_exists', {
+      table_name: 'retreats'
+    });
 
-    if (tableError) {
-      console.error('Error verifying table structure:', tableError);
-      return false;
+    if (dropRetreatsError && !dropRetreatsError.message.includes('does not exist')) {
+      console.error('Error dropping retreats table:', dropRetreatsError);
+    }
+
+    // Create retreats table
+    const { error: createRetreatsError } = await supabase.rpc('create_table_if_not_exists', {
+      table_name: 'retreats',
+      table_definition: `
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        location JSONB NOT NULL,
+        price JSONB NOT NULL,
+        duration INTEGER NOT NULL,
+        startDate DATE NOT NULL,
+        endDate DATE NOT NULL,
+        type TEXT[] NOT NULL,
+        amenities TEXT[] NOT NULL,
+        images TEXT[] NOT NULL,
+        hostId UUID NOT NULL,
+        rating FLOAT DEFAULT 0,
+        reviewCount INTEGER DEFAULT 0,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+      `
+    });
+
+    if (createRetreatsError) {
+      console.error('Error creating retreats table:', createRetreatsError);
+      throw createRetreatsError;
+    }
+
+    // Create bookings table
+    const { error: createBookingsError } = await supabase.rpc('create_table_if_not_exists', {
+      table_name: 'bookings',
+      table_definition: `
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        retreatId UUID NOT NULL REFERENCES retreats(id) ON DELETE CASCADE,
+        userId UUID NOT NULL,
+        startDate DATE NOT NULL,
+        endDate DATE NOT NULL,
+        totalPrice NUMERIC NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+      `
+    });
+
+    if (createBookingsError) {
+      console.error('Error creating bookings table:', createBookingsError);
+      throw createBookingsError;
+    }
+
+    // Drop existing policies
+    const { error: dropRetreatsSelectError } = await supabase.rpc('drop_policy_if_exists', {
+      table_name: 'retreats',
+      policy_name: 'retreats_select_policy'
+    });
+
+    if (dropRetreatsSelectError && !dropRetreatsSelectError.message.includes('does not exist')) {
+      console.error('Error dropping retreats select policy:', dropRetreatsSelectError);
+    }
+
+    const { error: dropRetreatsInsertError } = await supabase.rpc('drop_policy_if_exists', {
+      table_name: 'retreats',
+      policy_name: 'retreats_insert_policy'
+    });
+
+    if (dropRetreatsInsertError && !dropRetreatsInsertError.message.includes('does not exist')) {
+      console.error('Error dropping retreats insert policy:', dropRetreatsInsertError);
+    }
+
+    // Create policies
+    const { error: createRetreatsSelectError } = await supabase.rpc('create_policy', {
+      table_name: 'retreats',
+      policy_name: 'retreats_select_policy',
+      policy_definition: `
+        CREATE POLICY retreats_select_policy ON retreats
+        FOR SELECT USING (true)
+      `
+    });
+
+    if (createRetreatsSelectError) {
+      console.error('Error creating retreats select policy:', createRetreatsSelectError);
+      throw createRetreatsSelectError;
+    }
+
+    const { error: createRetreatsInsertError } = await supabase.rpc('create_policy', {
+      table_name: 'retreats',
+      policy_name: 'retreats_insert_policy',
+      policy_definition: `
+        CREATE POLICY retreats_insert_policy ON retreats
+        FOR INSERT WITH CHECK (auth.uid() IS NOT NULL)
+      `
+    });
+
+    if (createRetreatsInsertError) {
+      console.error('Error creating retreats insert policy:', createRetreatsInsertError);
+      throw createRetreatsInsertError;
     }
 
     console.log('Database structure verified successfully');
     return true;
-  } catch (error) {
-    console.error('Error in verifyDatabaseStructure:', error);
-    return false;
+  } catch (err) {
+    console.error('Error verifying database structure:', err);
+    throw err;
   }
 };
 

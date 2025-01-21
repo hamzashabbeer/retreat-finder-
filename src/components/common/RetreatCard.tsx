@@ -24,7 +24,7 @@ const RetreatCard: React.FC<RetreatCardProps> = ({ retreat }) => {
   } = retreat;
 
   return (
-    <Link to={`/retreat/${id}`} className="group">
+    <Link to={`/retreats/${id}`} className="group">
       <div className="bg-white rounded-lg shadow-md overflow-hidden transition-shadow hover:shadow-lg">
         {/* Image */}
         <div className="relative aspect-[4/3] overflow-hidden">

@@ -33,11 +33,11 @@ export const useRetreats = () => {
         }
 
         if (filters.startDate) {
-          query = query.gte('start_date', filters.startDate);
+          query = query.gte('startDate', filters.startDate);
         }
 
         if (filters.endDate) {
-          query = query.lte('end_date', filters.endDate);
+          query = query.lte('endDate', filters.endDate);
         }
 
         if (filters.type && filters.type.length > 0) {
@@ -46,8 +46,8 @@ export const useRetreats = () => {
 
         if (filters.priceRange) {
           query = query
-            .gte('price_per_night', filters.priceRange[0])
-            .lte('price_per_night', filters.priceRange[1]);
+            .gte('price->amount', filters.priceRange[0])
+            .lte('price->amount', filters.priceRange[1]);
         }
 
         if (filters.amenities && filters.amenities.length > 0) {
@@ -55,10 +55,17 @@ export const useRetreats = () => {
         }
       }
 
-      const { data, error } = await query;
+      const { data, error: fetchError } = await query;
 
-      if (error) throw error;
-      setRetreats(data || []);
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+
+      setRetreats(data as Retreat[]);
     } catch (err) {
       console.error('Error fetching retreats:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch retreats');
@@ -140,7 +147,7 @@ export const useRetreats = () => {
     }
   };
 
-  // Fetch retreats on mount
+  // Initial fetch
   useEffect(() => {
     fetchRetreats();
   }, []);
@@ -155,3 +162,5 @@ export const useRetreats = () => {
     deleteRetreat,
   };
 };
+
+export default useRetreats;

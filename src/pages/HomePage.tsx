@@ -7,7 +7,7 @@ const HomePage: React.FC = () => {
   // Mock data for featured retreats
   const featuredRetreats: Retreat[] = [
     {
-      id: 1,
+      id: "550e8400-e29b-41d4-a716-446655440000",
       title: "Mountain Zen Retreat",
       description: "A peaceful mountain retreat focused on mindfulness and meditation",
       location: {
@@ -33,7 +33,7 @@ const HomePage: React.FC = () => {
       reviewCount: 24
     },
     {
-      id: 2,
+      id: "550e8400-e29b-41d4-a716-446655440001",
       title: "Beachside Meditation",
       description: "Find inner peace with the sound of waves in beautiful Bali",
       location: {
