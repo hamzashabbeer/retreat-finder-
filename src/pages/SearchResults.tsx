@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Filter, SlidersHorizontal, X } from 'lucide-react';
-import SearchBar from '../components/SearchBar';
-import RetreatCard from '../components/RetreatCard';
-import { useRetreats } from '../hooks/useRetreats';
+import SearchBar from '@components/forms/SearchBar';
+import RetreatCard from '@components/common/RetreatCard';
+import { useRetreats } from '@hooks/useRetreats';
+import type { Retreat } from '@types';
 
 interface FilterState {
   priceRange: [number, number];
@@ -22,18 +23,17 @@ export default function SearchResults() {
     rating: null,
   });
 
-  const { data: retreats, isLoading } = useRetreats({
-    location: searchParams.get('location') || undefined,
-    startDate: searchParams.get('startDate') || undefined,
-    endDate: searchParams.get('endDate') || undefined,
-    type: searchParams.get('type') || undefined,
-    minPrice: filters.priceRange[0],
-    maxPrice: filters.priceRange[1],
-  });
+  const { retreats, loading, fetchRetreats } = useRetreats();
 
-  const handleSearch = (searchParams: any) => {
-    setSearchParams(searchParams);
-  };
+  useEffect(() => {
+    fetchRetreats({
+      location: searchParams.get('location') || undefined,
+      startDate: searchParams.get('startDate') || undefined,
+      endDate: searchParams.get('endDate') || undefined,
+      type: searchParams.get('category')?.split(',') || undefined,
+      priceRange: filters.priceRange,
+    });
+  }, [searchParams, filters.priceRange, fetchRetreats]);
 
   const handleFilterChange = (key: keyof FilterState, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -53,7 +53,7 @@ export default function SearchResults() {
       {/* Top Search Bar */}
       <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <SearchBar onSearch={handleSearch} />
+          <SearchBar />
         </div>
       </div>
 
@@ -185,7 +185,7 @@ export default function SearchResults() {
             </div>
 
             <div className={`grid ${showFilters ? 'grid-cols-2' : 'grid-cols-3'} gap-6`}>
-              {isLoading ? (
+              {loading ? (
                 <div className="col-span-full flex justify-center items-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent"></div>
                 </div>
