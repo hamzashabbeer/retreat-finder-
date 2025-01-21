@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { supabase, testSupabaseConnection } from '../../lib/supabase';
 
 const OwnerLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -16,11 +16,19 @@ const OwnerLogin: React.FC = () => {
     console.log('Starting login process...');
 
     try {
-      console.log('Attempting to sign in with Supabase...');
+      // Test connection first
+      const isConnected = await testSupabaseConnection();
+      if (!isConnected) {
+        throw new Error('Unable to connect to Supabase. Please check your internet connection and try again.');
+      }
+
+      console.log('Attempting to sign in with Supabase...', { email });
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+
+      console.log('Sign in response:', { authData, error: signInError });
 
       if (signInError) {
         console.error('Sign in error:', signInError);
@@ -32,7 +40,7 @@ const OwnerLogin: React.FC = () => {
         throw new Error('No user data returned');
       }
 
-      console.log('Successfully signed in, checking profile...');
+      console.log('Successfully signed in, checking profile...', { userId: authData.user.id });
       
       // Check if profile exists and is an owner
       const { data: profileData, error: profileError } = await supabase
@@ -48,7 +56,7 @@ const OwnerLogin: React.FC = () => {
         // If no profile exists, create one
         if (profileError.code === 'PGRST116') {
           console.log('Creating new profile...');
-          const { error: createError } = await supabase
+          const { data: newProfile, error: createError } = await supabase
             .from('profiles')
             .insert([
               {
@@ -58,16 +66,18 @@ const OwnerLogin: React.FC = () => {
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               }
-            ]);
+            ])
+            .select()
+            .single();
 
           if (createError) {
             console.error('Profile creation error:', createError);
-            throw new Error('Failed to create profile');
+            throw new Error('Failed to create profile: ' + createError.message);
           }
-          console.log('Profile created successfully');
+          console.log('Profile created successfully:', newProfile);
         } else {
           console.error('Profile fetch error:', profileError);
-          throw new Error('Error fetching profile');
+          throw new Error('Error fetching profile: ' + profileError.message);
         }
       } else if (profileData.role !== 'owner') {
         console.error('User is not an owner:', profileData);
@@ -79,8 +89,6 @@ const OwnerLogin: React.FC = () => {
     } catch (err) {
       console.error('Login process error:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
-    } finally {
-      console.log('Login process completed');
       setIsLoading(false);
     }
   };
