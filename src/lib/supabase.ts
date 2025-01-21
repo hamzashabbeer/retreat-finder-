@@ -34,29 +34,43 @@ export const testSupabaseConnection = async () => {
   
   try {
     // First try a simple health check
-    const { error: healthError } = await supabase.from('profiles').select('count');
-    if (healthError) {
-      console.error('Health check failed:', healthError);
+    const { data: tableData, error: tableError } = await supabase
+      .from('profiles')
+      .select('id, role, full_name')
+      .limit(1);
+
+    if (tableError) {
+      console.error('Table check failed:', {
+        error: tableError.message,
+        details: tableError.details,
+        hint: tableError.hint,
+        code: tableError.code
+      });
       return false;
     }
 
+    console.log('Table structure check:', { tableData });
+
     // Try to get the current session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log('Session check:', { session, error: sessionError });
+    console.log('Session check:', { 
+      hasSession: !!session,
+      sessionError: sessionError?.message
+    });
 
-    // Try a simple query
-    const { error: queryError } = await supabase
-      .from('profiles')
-      .select('*')
-      .limit(1);
-      
-    if (queryError) {
-      console.error('Query test failed:', {
-        error: queryError.message,
-        details: queryError.details,
-        hint: queryError.hint
+    if (session) {
+      // If we have a session, try to get the user's profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      console.log('Profile check:', {
+        hasProfile: !!profileData,
+        role: profileData?.role,
+        error: profileError?.message
       });
-      return false;
     }
     
     console.log('Supabase connection successful!');
