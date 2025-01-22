@@ -52,9 +52,12 @@ const Navbar: React.FC = () => {
 
             {/* Profile Menu */}
             <div className="hidden md:flex items-center">
-              <button className="flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <Link 
+                to="/auth/customer/login"
+                className="flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
                 Sign In
-              </button>
+              </Link>
             </div>
           </div>
         </div>

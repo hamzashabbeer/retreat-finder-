@@ -62,11 +62,11 @@ function App() {
   return (
     <AuthProvider>
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <Routes>
+      <Navbar />
+      <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/search" element={<SearchResults />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/search" element={<SearchResults />} />
           <Route path="/retreats" element={<RetreatListing />} />
           <Route path="/retreats/:id" element={<RetreatDetails />} />
           <Route path="/retreats/new" element={<AddEditRetreat />} />
@@ -88,7 +88,7 @@ function App() {
 
           {/* Add more routes as needed */}
           {/* <Route path="/retreat/:id" element={<RetreatDetail />} /> */}
-        </Routes>
+      </Routes>
       </div>
     </AuthProvider>
   );

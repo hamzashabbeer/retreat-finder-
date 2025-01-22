@@ -127,7 +127,7 @@ const AddEditRetreat: React.FC = () => {
     setFormData(prev => ({
       ...prev,
       location: {
-        ...prev.location,
+        ...(prev.location || { city: '', country: '', coordinates: { lat: 0, lng: 0 } }),
         [field]: value
       }
     }));
@@ -137,7 +137,7 @@ const AddEditRetreat: React.FC = () => {
     setFormData(prev => ({
       ...prev,
       price: {
-        ...prev.price,
+        ...(prev.price || { amount: 0, currency: 'USD' }),
         [field]: field === 'amount' ? Number(value) : value
       }
     }));
