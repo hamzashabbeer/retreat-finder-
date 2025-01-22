@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Search, MapPin, Calendar, Tag } from 'lucide-react';
+import { DateRange } from 'react-day-picker';
+import { format } from 'date-fns';
 
 /**
  * Interface for the search parameters
@@ -18,18 +20,28 @@ interface SearchParams {
  * SearchBar component that provides search functionality for retreats
  * Allows users to search by location, category, and date range
  */
-export const SearchBar: React.FC = () => {
+const SearchBar: React.FC = () => {
   const navigate = useNavigate();
-  
-  // State for search parameters
-  const [searchParams, setSearchParams] = useState<SearchParams>({
-    location: '',
-    category: '',
-    dateRange: {
-      startDate: '',
-      endDate: ''
-    }
-  });
+  const [location, setLocation] = useState('');
+  const [category, setCategory] = useState('');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+
+  const categories = [
+    "Meditation",
+    "Yoga",
+    "Wellness",
+    "Spiritual",
+    "Mental Health",
+    "Detox",
+    "Fitness",
+    "Silent",
+    "Couples",
+    "Weight Loss",
+    "Healing",
+    "Ayurvedic"
+  ];
 
   /**
    * Handles form submission and navigation to search results
@@ -37,117 +49,97 @@ export const SearchBar: React.FC = () => {
    */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const params = new URLSearchParams();
     
-    // Construct query parameters
-    const queryParams = new URLSearchParams();
-    if (searchParams.location) queryParams.set('location', searchParams.location);
-    if (searchParams.category) queryParams.set('category', searchParams.category);
-    if (searchParams.dateRange.startDate) queryParams.set('startDate', searchParams.dateRange.startDate);
-    if (searchParams.dateRange.endDate) queryParams.set('endDate', searchParams.dateRange.endDate);
-
-    // Navigate to search results with query parameters
-    navigate(`/retreats?${queryParams.toString()}`);
-  };
-
-  /**
-   * Updates search parameters state
-   * @param field - Field to update
-   * @param value - New value
-   */
-  const handleInputChange = (field: keyof SearchParams | 'startDate' | 'endDate', value: string) => {
-    if (field === 'startDate' || field === 'endDate') {
-      setSearchParams(prev => ({
-        ...prev,
-        dateRange: {
-          ...prev.dateRange,
-          [field]: value
-        }
-      }));
-    } else {
-      setSearchParams(prev => ({
-        ...prev,
-        [field]: value
-      }));
-    }
+    if (location) params.append('location', location);
+    if (category) params.append('category', category);
+    if (dateRange?.from) params.append('startDate', format(dateRange.from, 'yyyy-MM-dd'));
+    if (dateRange?.to) params.append('endDate', format(dateRange.to, 'yyyy-MM-dd'));
+    
+    navigate(`/retreats?${params.toString()}`);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-4xl mx-auto">
-      <div className="flex flex-col md:flex-row gap-4 p-4 bg-white rounded-lg shadow-md">
-        {/* Location Input */}
-        <div className="flex-1">
-          <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-            Location
-          </label>
-          <input
-            type="text"
-            id="location"
-            value={searchParams.location}
-            onChange={(e) => handleInputChange('location', e.target.value)}
-            placeholder="Where are you going?"
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-          />
+    <form onSubmit={handleSubmit} className="relative">
+      <div className="flex flex-col md:flex-row gap-2 p-2 bg-white rounded-lg shadow-lg">
+        {/* Location */}
+        <div className="flex-1 relative">
+          <div className="flex items-center h-12 px-4 border border-gray-300 rounded-lg focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+            <MapPin className="w-5 h-5 text-gray-400 mr-2" />
+            <input
+              type="text"
+              placeholder="Where are you going?"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="w-full focus:outline-none text-gray-900 placeholder-gray-500"
+            />
+          </div>
         </div>
 
-        {/* Category Select */}
-        <div className="flex-1">
-          <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-            Category
-          </label>
-          <select
-            id="category"
-            value={searchParams.category}
-            onChange={(e) => handleInputChange('category', e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+        {/* Category */}
+        <div className="relative">
+          <div 
+            className="flex items-center h-12 px-4 border border-gray-300 rounded-lg cursor-pointer hover:border-blue-500"
+            onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
           >
-            <option value="">All Categories</option>
-            <option value="yoga">Yoga</option>
-            <option value="meditation">Meditation</option>
-            <option value="wellness">Wellness</option>
-            <option value="spiritual">Spiritual</option>
-          </select>
+            <Tag className="w-5 h-5 text-gray-400 mr-2" />
+            <span className={category ? 'text-gray-900' : 'text-gray-500'}>
+              {category || 'What are you seeking?'}
+            </span>
+          </div>
+
+          {/* Category Dropdown */}
+          {showCategoryDropdown && (
+            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  className="w-full px-4 py-2 text-left hover:bg-gray-50 focus:outline-none"
+                  onClick={() => {
+                    setCategory(cat);
+                    setShowCategoryDropdown(false);
+                  }}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Date Range Inputs */}
-        <div className="flex-1 flex gap-2">
-          <div className="flex-1">
-            <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
-              Check In
-            </label>
-            <input
-              type="date"
-              id="startDate"
-              value={searchParams.dateRange.startDate}
-              onChange={(e) => handleInputChange('startDate', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            />
+        {/* Date Range */}
+        <div className="relative">
+          <div 
+            className="flex items-center h-12 px-4 border border-gray-300 rounded-lg cursor-pointer hover:border-blue-500"
+            onClick={() => setShowDatePicker(!showDatePicker)}
+          >
+            <Calendar className="w-5 h-5 text-gray-400 mr-2" />
+            <span className={dateRange?.from ? 'text-gray-900' : 'text-gray-500'}>
+              {dateRange?.from
+                ? `${format(dateRange.from, 'MMM d')}${
+                    dateRange.to ? ` - ${format(dateRange.to, 'MMM d')}` : ''
+                  }`
+                : 'When are you going?'}
+            </span>
           </div>
-          <div className="flex-1">
-            <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
-              Check Out
-            </label>
-            <input
-              type="date"
-              id="endDate"
-              value={searchParams.dateRange.endDate}
-              onChange={(e) => handleInputChange('endDate', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
+
+          {/* Date Picker Dropdown */}
+          {showDatePicker && (
+            <div className="absolute z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4">
+              {/* Add your date picker component here */}
+            </div>
+          )}
         </div>
 
         {/* Search Button */}
-        <div className="flex items-end">
-          <button
-            type="submit"
-            className="w-full md:w-auto px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <div className="flex items-center justify-center gap-2">
-              <Search className="w-5 h-5" />
-              <span>Search</span>
-            </div>
-          </button>
-        </div>
+        <button
+          type="submit"
+          className="h-12 px-8 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center gap-2"
+        >
+          <Search className="w-5 h-5" />
+          <span>Search</span>
+        </button>
       </div>
     </form>
   );
