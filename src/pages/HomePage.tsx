@@ -71,7 +71,7 @@ const HomePage: React.FC = () => {
   return (
     <div>
       {/* Hero Section */}
-      <div className="w-[1150px] mx-auto pt-24 pb-12">
+      <div className="w-[1150px] mx-auto pt-[100px]">
         <div className="flex justify-between items-center">
           {/* Left Column - Text */}
           <div className="w-[450px] space-y-6 text-center">
