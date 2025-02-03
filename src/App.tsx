@@ -12,6 +12,7 @@ import RetreatListing from './pages/RetreatListing';
 import OwnerDashboard from './pages/OwnerDashboard';
 import RetreatDetails from './pages/RetreatDetails';
 import AddEditRetreat from './pages/AddEditRetreat';
+import About from './pages/About';
 import { testSupabaseConnection } from './lib/supabase';
 
 /**
@@ -66,6 +67,7 @@ function App() {
       <Routes>
           {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
+        <Route path="/about" element={<About />} />
         <Route path="/search" element={<SearchResults />} />
           <Route path="/retreats" element={<RetreatListing />} />
           <Route path="/retreats/:id" element={<RetreatDetails />} />

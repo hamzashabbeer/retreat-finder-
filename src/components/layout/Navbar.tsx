@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Globe, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
+import LogoImage from '../../assets/logos/logo.png';
 
 /**
  * Navigation bar component that displays the main navigation links and authentication status
@@ -17,11 +18,7 @@ const Navbar: React.FC = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center">
-            <div className="text-2xl font-bold text-blue-500 flex items-center gap-2">
-              <Globe className="w-8 h-8" />
-              <span>BookRetreats</span>
-            </div>
-            <span className="text-sm text-gray-500 ml-2 hidden sm:block">World's #1 Retreat Site</span>
+            <img src={LogoImage} alt="Find Retreat Logo" className="h-10 w-auto" />
           </Link>
 
           {/* Navigation Links */}

@@ -29,9 +29,10 @@
       "@hooks/*": ["src/hooks/*"],
       "@context/*": ["src/context/*"],
       "@types": ["src/types"],
-      "@lib/*": ["src/lib/*"]
+      "@lib/*": ["src/lib/*"],
+      "@assets/*": ["src/assets/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "src/types/images.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

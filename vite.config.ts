@@ -14,8 +14,10 @@ export default defineConfig({
       '@context': path.resolve(__dirname, './src/context'),
       '@types': path.resolve(__dirname, './src/types'),
       '@lib': path.resolve(__dirname, './src/lib'),
+      '@assets': path.resolve(__dirname, './src/assets'),
     },
   },
+  assetsInclude: ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.gif', '**/*.svg'],
   server: {
     port: 5173,
     host: true
