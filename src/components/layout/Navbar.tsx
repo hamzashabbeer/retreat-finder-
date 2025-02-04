@@ -28,7 +28,7 @@ const Navbar: React.FC = () => {
             <Link to="/featured" className="text-gray-600 hover:text-gray-900">Featured</Link>
             <Link to="/wishlist" className="text-gray-600 hover:text-gray-900">Wishlist</Link>
             <Link 
-              to="/add-retreat" 
+              to="/auth/owner/login" 
               className="text-gray-600 hover:text-gray-900"
             >
               Add Retreat
