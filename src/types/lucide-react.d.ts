@@ -24,4 +24,12 @@ declare module 'lucide-react' {
   export const PlusCircle: FC<IconProps>;
   export const Settings: FC<IconProps>;
   export const BarChart: FC<IconProps>;
+  export const Heart: FC<IconProps>;
+  export const Shield: FC<IconProps>;
+  export const Sparkle: FC<IconProps>;
+  export const Facebook: FC<IconProps>;
+  export const Twitter: FC<IconProps>;
+  export const Instagram: FC<IconProps>;
+  export const Youtube: FC<IconProps>;
+  export const Mail: FC<IconProps>;
 } 
