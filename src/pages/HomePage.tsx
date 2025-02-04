@@ -1,13 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import SearchBar from '@components/forms/SearchBar';
-import RetreatCard from '@components/common/RetreatCard';
-import { Check } from 'lucide-react';
-import type { Retreat } from '@types';
+import { motion } from 'framer-motion';
+import SearchBar from '../components/forms/SearchBar';
+import CallToAction from '../components/layout/CallToAction';
 
 const HomePage: React.FC = () => {
   // Mock data for featured retreats
-  const featuredRetreats: Retreat[] = [
+  const featuredRetreats = [
     {
       id: "550e8400-e29b-41d4-a716-446655440000",
       title: "Mountain Zen Retreat",
@@ -86,13 +85,6 @@ const HomePage: React.FC = () => {
       rating: 4.7,
       reviewCount: 31
     }
-  ];
-
-  const categories = [
-    { name: "Meditation", icon: "🧘‍♀️", description: "Find inner peace and mindfulness" },
-    { name: "Yoga", icon: "🌟", description: "Transform body, mind and spirit" },
-    { name: "Wellness", icon: "💆‍♀️", description: "Rejuvenate your whole being" },
-    { name: "Adventure", icon: "🏃‍♂️", description: "Challenge yourself in nature" },
   ];
 
   return (

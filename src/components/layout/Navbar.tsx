@@ -7,10 +7,6 @@ import LogoImage from '../../assets/logos/logo.png';
  * Navigation bar component that displays the main navigation links and authentication status
  * Handles user navigation and logout functionality
  */
-interface NavbarProps {
-  className?: string;
-}
-
 const Navbar: React.FC = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
