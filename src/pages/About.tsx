@@ -52,24 +52,6 @@ const About: React.FC = () => {
     }
   ];
 
-  const values = [
-    {
-      title: 'Authenticity',
-      description: 'We carefully verify each retreat and host to ensure genuine, transformative experiences.',
-      image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-    },
-    {
-      title: 'Mindfulness',
-      description: 'Every retreat is designed to promote personal growth and inner peace.',
-      image: 'https://images.unsplash.com/photo-1545205597-3d9d02c29597?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-    },
-    {
-      title: 'Community',
-      description: 'We foster connections between like-minded individuals seeking wellness.',
-      image: 'https://images.unsplash.com/photo-1599447421416-3414500d18a5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
-    }
-  ];
-
   const team = [
     {
       name: 'Sarah Anderson',
