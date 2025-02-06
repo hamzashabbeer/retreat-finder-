@@ -32,4 +32,6 @@ declare module 'lucide-react' {
   export const Instagram: FC<IconProps>;
   export const Youtube: FC<IconProps>;
   export const Mail: FC<IconProps>;
+  export const ChevronUp: FC<IconProps>;
+  export const ChevronDown: FC<IconProps>;
 } 

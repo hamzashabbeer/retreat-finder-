@@ -64,13 +64,13 @@ function App() {
   return (
     <AuthProvider>
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <Navbar />
+      <Navbar />
         <main className="flex-grow">
-          <Routes>
+      <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<About />} />
-            <Route path="/search" element={<SearchResults />} />
+        <Route path="/search" element={<SearchResults />} />
             <Route path="/retreats" element={<RetreatListing />} />
             <Route path="/retreats/:id" element={<RetreatDetails />} />
             <Route path="/retreats/new" element={<AddEditRetreat />} />
@@ -89,7 +89,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-          </Routes>
+      </Routes>
         </main>
         <Footer />
       </div>
