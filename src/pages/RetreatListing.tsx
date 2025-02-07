@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+
 import { Filter, SortAsc, ChevronDown, ChevronUp, X, Check, Users } from 'lucide-react';
 import RetreatCard from '@components/common/RetreatCard';
 import SearchBar from '@components/forms/SearchBar';
 import type { Retreat } from '@types';
 import { useRetreats } from '@hooks/useRetreats';
+import { useWishlist } from '@context/WishlistContext';
 import { Heart, MapPin, Star, Calendar } from 'lucide-react';
 
 const RetreatListing: React.FC = () => {
@@ -14,6 +16,7 @@ const RetreatListing: React.FC = () => {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedDuration, setSelectedDuration] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('recommended');
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const [openSections, setOpenSections] = useState({
     price: true,
     type: true,
@@ -487,119 +490,135 @@ const RetreatListing: React.FC = () => {
                 </div>
               ) : retreats?.length ? (
                 filteredRetreats.map((retreat) => (
-                  <Link 
-                    key={retreat.id} 
-                    to={`/retreats/${retreat.id}`}
-                    className="block group"
-                  >
-                    <div className="relative bg-white rounded-2xl shadow-[0_3px_16px_rgba(0,0,0,0.1)] hover:shadow-[0_8px_28px_rgba(0,0,0,0.15)] transition-all duration-300 overflow-hidden h-[242px]">
-                      <div className="flex h-full">
-                        {/* Left Section - Image */}
-                        <div className="w-[300px] relative overflow-hidden">
-                          <img
-                            src={retreat.images[0]}
-                            alt={retreat.title}
-                            className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-in-out"
+                  <div key={retreat.id} className="relative bg-white rounded-2xl shadow-[0_3px_16px_rgba(0,0,0,0.1)] hover:shadow-[0_8px_28px_rgba(0,0,0,0.15)] transition-all duration-300 overflow-hidden h-[242px]">
+                    <div className="flex h-full">
+                      {/* Left Section - Image */}
+                      <div className="w-[300px] relative overflow-hidden">
+                        <img
+                          src={retreat.images[0]}
+                          alt={retreat.title}
+                          className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-in-out"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const isWishlisted = isInWishlist(retreat.id);
+                            if (isWishlisted) {
+                              removeFromWishlist(retreat.id);
+                            } else {
+                              addToWishlist(retreat);
+                            }
+                          }}
+                          className="absolute top-4 right-4 p-2.5 rounded-full bg-white/95 hover:bg-white text-gray-500 hover:text-rose-500 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 z-10"
+                        >
+                          <Heart 
+                            className={`w-4 h-4 stroke-[2.5] ${
+                              isInWishlist(retreat.id) ? 'fill-rose-500 text-rose-500' : ''
+                            }`} 
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                          <button className="absolute top-4 right-4 p-2.5 rounded-full bg-white/95 hover:bg-white text-gray-500 hover:text-rose-500 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
-                            <Heart className="w-4 h-4 stroke-[2.5]" />
-                          </button>
-                          <div className="absolute bottom-4 left-4">
-                            <div className="flex items-center gap-2 text-white text-sm font-medium bg-black/30 px-3 py-1.5 rounded-full backdrop-blur-sm">
-                              <Calendar className="w-4 h-4" />
-                              <span>{retreat.duration} days</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Middle Section - Main Content */}
-                        <div className="flex-1 p-6 flex flex-col justify-between bg-gradient-to-br from-white via-white to-gray-50/50">
-                          <div>
-                            <h3 className="text-xl font-semibold text-gray-900 group-hover:text-gray-900 transition-colors mb-2.5 line-clamp-1">
-                              {retreat.title}
-                            </h3>
-                            <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 rounded-full">
-                                <MapPin className="w-4 h-4 text-indigo-500 stroke-[2.5]" />
-                                <span className="font-medium text-gray-700">{retreat.location.city},</span>
-                                <span className="text-gray-500">{retreat.location.country}</span>
-                              </div>
-                            </div>
-                            <p className="text-gray-600 text-sm line-clamp-2 mb-4 leading-relaxed">
-                              {retreat.description || "Experience a transformative journey in this peaceful retreat, offering a perfect blend of relaxation and rejuvenation."}
-                            </p>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            {retreat.type.slice(0, 3).map((t) => (
-                              <span
-                                key={t}
-                                className="px-3 py-1.5 text-xs font-medium bg-indigo-50/60 text-indigo-600 rounded-full ring-1 ring-indigo-100 hover:bg-indigo-100 hover:ring-indigo-200 transition-all duration-200"
-                              >
-                                {t}
-                              </span>
-                            ))}
-                            {retreat.type.length > 3 && (
-                              <span className="text-xs text-gray-500 hover:text-gray-700 transition-colors cursor-pointer hover:underline">
-                                +{retreat.type.length - 3} more
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Right Section - Price and Actions */}
-                        <div className="w-[280px] p-6 border-l border-gray-100 flex flex-col justify-between bg-white">
-                          <div className="space-y-2.5">
-                            <div>
-                              <div className="text-gray-400 text-sm mb-0.5">From</div>
-                              <div className="text-2xl font-bold text-gray-900">
-                                US${retreat.price.amount}
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-1.5 text-xs">
-                              <div className="w-4 h-4 rounded-full bg-orange-50 flex items-center justify-center ring-1 ring-orange-100">
-                                <Users className="w-3 h-3 text-orange-500 stroke-[2.5]" />
-                              </div>
-                              <span className="text-gray-600">
-                                4 people are interested
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-1.5 text-xs">
-                              <div className="w-4 h-4 rounded-full bg-green-50 flex items-center justify-center ring-1 ring-green-100">
-                                <Check className="w-3 h-3 text-green-500 stroke-[2.5]" />
-                              </div>
-                              <span className="text-gray-600">
-                                FREE Cancellation
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center gap-1.5 text-sm text-gray-900">
-                                <span className="font-semibold">
-                                  {retreat.rating.toFixed(2)}
-                                </span>
-                                <span className="text-yellow-400">★</span>
-                                <span className="text-gray-500">
-                                  ({retreat.reviewCount} reviews)
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2.5 mt-4">
-                            <button className="px-4 py-2 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-500 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 transition-all duration-200">
-                              Book Now
-                            </button>
-                            <button className="px-4 py-2 text-indigo-600 text-xs font-medium hover:bg-indigo-50 rounded-lg transition-all duration-200 border border-indigo-200 hover:border-indigo-600 hover:shadow-sm">
-                              Details
-                            </button>
+                        </button>
+                        <div className="absolute bottom-4 left-4">
+                          <div className="flex items-center gap-2 text-white text-sm font-medium bg-black/30 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                            <Calendar className="w-4 h-4" />
+                            <span>{retreat.duration} days</span>
                           </div>
                         </div>
                       </div>
+
+                      {/* Middle Section - Main Content */}
+                      <div className="flex-1 p-6 flex flex-col justify-between bg-gradient-to-br from-white via-white to-gray-50/50">
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-900 group-hover:text-gray-900 transition-colors mb-2.5 line-clamp-1">
+                            {retreat.title}
+                          </h3>
+                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 rounded-full">
+                              <MapPin className="w-4 h-4 text-indigo-500 stroke-[2.5]" />
+                              <span className="font-medium text-gray-700">{retreat.location.city},</span>
+                              <span className="text-gray-500">{retreat.location.country}</span>
+                            </div>
+                          </div>
+                          <p className="text-gray-600 text-sm line-clamp-2 mb-4 leading-relaxed">
+                            {retreat.description || "Experience a transformative journey in this peaceful retreat, offering a perfect blend of relaxation and rejuvenation."}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {retreat.type.slice(0, 3).map((t) => (
+                            <span
+                              key={t}
+                              className="px-3 py-1.5 text-xs font-medium bg-indigo-50/60 text-indigo-600 rounded-full ring-1 ring-indigo-100 hover:bg-indigo-100 hover:ring-indigo-200 transition-all duration-200"
+                            >
+                              {t}
+                            </span>
+                          ))}
+                          {retreat.type.length > 3 && (
+                            <span className="text-xs text-gray-500 hover:text-gray-700 transition-colors cursor-pointer hover:underline">
+                              +{retreat.type.length - 3} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Right Section - Price and Actions */}
+                      <div className="w-[280px] p-6 border-l border-gray-100 flex flex-col justify-between bg-white">
+                        <div className="space-y-2.5">
+                          <div>
+                            <div className="text-gray-400 text-sm mb-0.5">From</div>
+                            <div className="text-2xl font-bold text-gray-900">
+                              US${retreat.price.amount}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <div className="w-4 h-4 rounded-full bg-orange-50 flex items-center justify-center ring-1 ring-orange-100">
+                              <Users className="w-3 h-3 text-orange-500 stroke-[2.5]" />
+                            </div>
+                            <span className="text-gray-600">
+                              4 people are interested
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <div className="w-4 h-4 rounded-full bg-green-50 flex items-center justify-center ring-1 ring-green-100">
+                              <Check className="w-3 h-3 text-green-500 stroke-[2.5]" />
+                            </div>
+                            <span className="text-gray-600">
+                              FREE Cancellation
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 text-sm text-gray-900">
+                              <span className="font-semibold">
+                                {retreat.rating.toFixed(2)}
+                              </span>
+                              <span className="text-yellow-400">★</span>
+                              <span className="text-gray-500">
+                                ({retreat.reviewCount} reviews)
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2.5 mt-4">
+                          <Link 
+                            to={`/retreats/${retreat.id}/book`}
+                            className="px-4 py-2 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-500 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 transition-all duration-200 text-center"
+                          >
+                            Book Now
+                          </Link>
+                          <Link 
+                            to={`/retreats/${retreat.id}`}
+                            className="px-4 py-2 text-indigo-600 text-xs font-medium hover:bg-indigo-50 rounded-lg transition-all duration-200 border border-indigo-200 hover:border-indigo-600 hover:shadow-sm text-center"
+                          >
+                            Details
+                          </Link>
+                        </div>
+                      </div>
                     </div>
-                  </Link>
+                  </div>
                 ))
               ) : (
                 <div className="col-span-full text-center py-12">

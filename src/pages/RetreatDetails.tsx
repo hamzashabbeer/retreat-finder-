@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Calendar, MapPin, Clock, Users, Star, Check, Shield, Sparkle, ChevronRight, X, Grid, Heart, ChevronDown } from 'lucide-react';
+import { useWishlist } from '@context/WishlistContext';
 import { supabase } from '@lib/supabase';
 import type { Retreat } from '@types';
 
 const RetreatDetails: React.FC = () => {
   const { id } = useParams();
-  const [retreat, setRetreat] = React.useState<Retreat | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  const [retreat, setRetreat] = useState<Retreat | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showAllPhotos, setShowAllPhotos] = useState(false);
   const [expandedSections, setExpandedSections] = useState<{
     summary: boolean;
@@ -17,31 +18,44 @@ const RetreatDetails: React.FC = () => {
     summary: false,
     description: false
   });
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
 
-  React.useEffect(() => {
-    const fetchRetreat = async () => {
-      try {
-        setLoading(true);
-        const { data, error: fetchError } = await supabase
-          .from('retreats')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        if (fetchError) throw fetchError;
-        setRetreat(data);
-      } catch (err) {
-        console.error('Error fetching retreat:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load retreat');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchRetreat();
-    }
+  useEffect(() => {
+    fetchRetreat();
   }, [id]);
+
+  const fetchRetreat = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data, error } = await supabase
+        .from('retreats')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error('Retreat not found');
+
+      setRetreat(data);
+    } catch (err) {
+      console.error('Error fetching retreat:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load retreat');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWishlistClick = () => {
+    if (!retreat) return;
+    
+    if (isInWishlist(retreat.id)) {
+      removeFromWishlist(retreat.id);
+    } else {
+      addToWishlist(retreat);
+    }
+  };
 
   if (loading) {
     return (
@@ -110,23 +124,37 @@ const RetreatDetails: React.FC = () => {
           <div className="flex items-start justify-between gap-8">
             <div className="flex-1">
               {/* Title */}
-              <h1 className="text-3xl font-bold text-gray-900 mb-4 hover:text-indigo-600 transition-colors">
-                {retreat.title}
-              </h1>
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-1">
+                  <h1 className="text-3xl font-bold text-gray-900 hover:text-indigo-600 transition-colors">
+                    {retreat.title}
+                  </h1>
+                  <div className="flex items-center gap-2 mt-3 text-gray-600">
+                    <MapPin className="w-4 h-4" />
+                    <span>{retreat.location.city}, {retreat.location.country}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={handleWishlistClick}
+                  className="p-2.5 rounded-full hover:bg-gray-100 transition-colors relative group"
+                >
+                  <Heart 
+                    className={`w-7 h-7 transition-colors ${
+                      isInWishlist(retreat.id) 
+                        ? 'fill-red-500 text-red-500' 
+                        : 'text-gray-400 group-hover:text-red-500'
+                    }`}
+                  />
+                </button>
+              </div>
 
               {/* Reviews, Location, and Badges Row */}
-              <div className="flex items-center flex-wrap gap-4">
+              <div className="flex items-center flex-wrap gap-4 mt-6">
                 {/* Rating */}
                 <div className="flex items-center gap-2 bg-yellow-50 px-3 py-1.5 rounded-full hover:bg-yellow-100 transition-colors cursor-pointer group">
                   <Star className="w-5 h-5 text-yellow-400 fill-current group-hover:scale-110 transition-transform" />
                   <span className="font-semibold text-gray-900">{retreat.rating.toFixed(2)}</span>
                   <span className="text-gray-500 group-hover:text-gray-700 transition-colors">({retreat.reviewCount} reviews)</span>
-                </div>
-
-                {/* Location */}
-                <div className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors cursor-pointer group">
-                  <MapPin className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" />
-                  <span className="text-gray-900">{retreat.location.city}, {retreat.location.country}</span>
                 </div>
 
                 {/* Top Rated Badge */}
@@ -140,15 +168,17 @@ const RetreatDetails: React.FC = () => {
                   <Shield className="w-4 h-4 group-hover:scale-110 transition-transform" />
                   <span className="text-sm font-medium">Verified Host</span>
                 </div>
+
+                {/* Best Price Badge */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors cursor-pointer group">
+                  <Shield className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                  <span className="text-sm font-medium">Best Price Guarantee</span>
+                </div>
               </div>
             </div>
 
-            {/* Best Price Badge and Book Now Button */}
+            {/* Book Now Button */}
             <div className="flex flex-col items-end gap-4">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors cursor-pointer group">
-                <Shield className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span className="text-sm font-medium">Best Price Guarantee</span>
-              </div>
               <button className="px-8 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-500 transform hover:-translate-y-1 transition-all duration-300 shadow-lg hover:shadow-xl active:translate-y-0">
                 Book Now
               </button>
