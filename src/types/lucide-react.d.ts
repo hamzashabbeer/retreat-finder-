@@ -34,4 +34,6 @@ declare module 'lucide-react' {
   export const Mail: FC<IconProps>;
   export const ChevronUp: FC<IconProps>;
   export const ChevronDown: FC<IconProps>;
+  export const ChevronRight: FC<IconProps>;
+  export const Grid: FC<IconProps>;
 } 

@@ -25,7 +25,7 @@ const Navbar: React.FC = () => {
           <div className="hidden md:flex items-center gap-6">
             <Link to="/about" className="text-gray-600 hover:text-gray-900">About</Link>
             <Link to="/help" className="text-gray-600 hover:text-gray-900">Help</Link>
-            <Link to="/featured" className="text-gray-600 hover:text-gray-900">Featured</Link>
+            <Link to="/retreats" className="text-gray-600 hover:text-gray-900">Featured</Link>
             <Link to="/wishlist" className="text-gray-600 hover:text-gray-900">Wishlist</Link>
             <Link 
               to="/auth/owner/login" 
