@@ -3,14 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@lib/supabase';
 import { 
   ChevronLeft,
-  MapPin,
-  Tag,
+  MapPin, 
+  Tag, 
   Calendar,
   DollarSign,
   ImageIcon,
   UtensilsIcon,
-  Check,
-  X,
+  Check, 
+  X, 
   Star,
   PlusCircle
 } from 'lucide-react';
@@ -155,7 +155,7 @@ const AddEditRetreat: React.FC = () => {
 
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
-
+      
       if (!user) {
         navigate('/auth/owner/login');
         return;
@@ -185,7 +185,7 @@ const AddEditRetreat: React.FC = () => {
       console.log('Submitting data:', dataToSubmit);
 
       const { data, error: saveError } = await supabase
-        .from('retreats')
+          .from('retreats')
         .insert([dataToSubmit])
         .select()
         .single();
@@ -443,50 +443,50 @@ const AddEditRetreat: React.FC = () => {
                     </div>
                     <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Duration (days)</label>
-                    <input
-                      type="number"
-                      name="duration"
-                      value={formData.duration}
+                      <input
+                        type="number"
+                        name="duration"
+                        value={formData.duration}
                       readOnly
                       className="w-full px-4 py-2 border border-gray-200 bg-gray-50 rounded-lg text-gray-600 cursor-not-allowed"
                     />
                     <p className="mt-1 text-xs text-gray-500">Auto-calculated from dates</p>
+                    </div>
                   </div>
-                </div>
 
                 {/* Rating and Review Count Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
-                    <input
+                      <input
                       type="number"
                       name="rating"
                       value={formData.rating || 0}
-                      onChange={handleInputChange}
+                        onChange={handleInputChange}
                       min="0"
                       max="5"
                       step="0.1"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                     <p className="mt-1 text-xs text-gray-500">Enter a rating between 0 and 5</p>
-                  </div>
-                  <div>
+                    </div>
+                    <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Review Count</label>
-                    <input
+                      <input
                       type="number"
                       name="reviewCount"
                       value={formData.reviewCount || 0}
-                      onChange={handleInputChange}
+                        onChange={handleInputChange}
                       min="0"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                      />
                     <p className="mt-1 text-xs text-gray-500">Number of reviews received</p>
+                    </div>
                   </div>
-                </div>
 
+                </div>
               </div>
             </div>
-          </div>
         );
       case 2:
         return (
@@ -513,7 +513,7 @@ const AddEditRetreat: React.FC = () => {
                     >
                       <X className="w-4 h-4" />
                     </button>
-                  </div>
+                </div>
                 ))}
                 
                 <label className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-500 transition-colors">
@@ -551,14 +551,14 @@ const AddEditRetreat: React.FC = () => {
               <h3 className="text-lg font-medium text-gray-900">Additional Details</h3>
               
               {/* Atmosphere */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
                   Atmosphere
-                </label>
+                    </label>
                 <div className="flex flex-wrap gap-2">
                   {FilterOptions.atmosphere.map((option) => (
                     <label key={option} className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-full text-sm cursor-pointer hover:bg-gray-50">
-                      <input
+                    <input
                         type="checkbox"
                         checked={formData.atmosphere?.includes(option) || false}
                         onChange={(e) => {
@@ -572,8 +572,8 @@ const AddEditRetreat: React.FC = () => {
                       {option}
                     </label>
                   ))}
+                  </div>
                 </div>
-              </div>
 
               {/* Skill Level */}
               <div className="space-y-2">
@@ -597,18 +597,18 @@ const AddEditRetreat: React.FC = () => {
                       {option}
                     </label>
                   ))}
-                </div>
               </div>
+                </div>
 
               {/* Area */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
                   Area
-                </label>
+                    </label>
                 <div className="flex flex-wrap gap-2">
                   {FilterOptions.area.map((option) => (
                     <label key={option} className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-full text-sm cursor-pointer hover:bg-gray-50">
-                      <input
+                    <input
                         type="checkbox"
                         checked={formData.area?.includes(option) || false}
                         onChange={(e) => {
@@ -622,8 +622,8 @@ const AddEditRetreat: React.FC = () => {
                       {option}
                     </label>
                   ))}
+                  </div>
                 </div>
-              </div>
 
               {/* Food */}
               <div className="space-y-2">
@@ -647,8 +647,8 @@ const AddEditRetreat: React.FC = () => {
                       {option}
                     </label>
                   ))}
-                </div>
               </div>
+                </div>
 
               {/* Age Group */}
               <div className="space-y-2">
@@ -771,10 +771,10 @@ const AddEditRetreat: React.FC = () => {
                           <X className="w-5 h-5" />
                         )}
                       </button>
-                    </div>
+                  </div>
                   ))}
                 </div>
-              </div>
+                  </div>
 
               {/* Benefits - Point Based */}
               <div className="space-y-4">
@@ -824,7 +824,7 @@ const AddEditRetreat: React.FC = () => {
                           <X className="w-5 h-5" />
                         )}
                       </button>
-                    </div>
+                  </div>
                   ))}
                 </div>
               </div>
@@ -877,10 +877,10 @@ const AddEditRetreat: React.FC = () => {
                           <X className="w-5 h-5" />
                         )}
                       </button>
-                    </div>
-                  ))}
                 </div>
+                  ))}
               </div>
+                </div>
 
               {/* What's Not Included - Point Based */}
               <div className="space-y-4">
@@ -932,10 +932,10 @@ const AddEditRetreat: React.FC = () => {
                       </button>
                     </div>
                   ))}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
         );
       default:
         return null;
