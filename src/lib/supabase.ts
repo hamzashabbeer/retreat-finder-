@@ -3,12 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl) {
-  throw new Error('Missing VITE_SUPABASE_URL');
-}
-
-if (!supabaseAnonKey) {
-  throw new Error('Missing VITE_SUPABASE_ANON_KEY');
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
 }
 
 // Validate URL format
@@ -26,21 +22,59 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-// Test connection function
-export const testSupabaseConnection = async () => {
+export async function verifyAndCreateLocationsTable() {
   try {
-    const { data, error } = await supabase.from('profiles').select('count').single();
-    if (error) {
-      console.error('Supabase connection test failed:', error.message);
+    // First, check if the locations table exists
+    const { data, error: checkError } = await supabase
+      .from('locations')
+      .select('id')
+      .limit(1);
+
+    // If we get data or an error that's not "doesn't exist", the table exists
+    if (data || (checkError && !checkError.message.includes('does not exist'))) {
+      console.log('Locations table already exists');
+      return true;
+    }
+
+    // If we get here, we need to create the table and insert sample data
+    console.log('Creating locations table and inserting sample data...');
+
+    // Insert sample locations directly
+    const { error: insertError } = await supabase
+      .from('locations')
+      .insert([
+        { city: 'Bali', country: 'Indonesia' },
+        { city: 'Rishikesh', country: 'India' },
+        { city: 'Tulum', country: 'Mexico' },
+        { city: 'Sedona', country: 'United States' },
+        { city: 'Ubud', country: 'Indonesia' },
+        { city: 'Chiang Mai', country: 'Thailand' },
+        { city: 'Cusco', country: 'Peru' },
+        { city: 'Byron Bay', country: 'Australia' }
+      ]);
+
+    if (insertError) {
+      console.error('Error inserting sample locations:', insertError);
       return false;
     }
-    console.log('Supabase connection successful!');
+
+    console.log('Successfully created locations table and inserted sample data');
     return true;
+  } catch (err) {
+    console.error('Error in verifyAndCreateLocationsTable:', err);
+    return false;
+  }
+}
+
+export async function testSupabaseConnection() {
+  try {
+    const { data, error } = await supabase.from('locations').select('count').single();
+    return !error;
   } catch (err) {
     console.error('Error testing Supabase connection:', err);
     return false;
   }
-};
+}
 
 /**
  * Verifies and sets up the necessary database structure
@@ -241,3 +275,51 @@ export const testSupabaseAndInsertRetreat = async () => {
     return false;
   }
 };
+
+export async function verifyAndCreateRetreatTypesTable() {
+  try {
+    // First, check if the retreat_types table exists
+    const { data, error: checkError } = await supabase
+      .from('retreat_types')
+      .select('id')
+      .limit(1);
+
+    // If we get data or an error that's not "doesn't exist", the table exists
+    if (data || (checkError && !checkError.message.includes('does not exist'))) {
+      console.log('Retreat types table already exists');
+      return true;
+    }
+
+    // If we get here, we need to create the table and insert sample data
+    console.log('Creating retreat_types table and inserting sample data...');
+
+    // Insert sample retreat types
+    const { error: insertError } = await supabase
+      .from('retreat_types')
+      .insert([
+        { name: 'Meditation', description: 'Focus on mindfulness and inner peace', icon: '🧘' },
+        { name: 'Yoga', description: 'Traditional yoga practices and philosophy', icon: '🧘‍♀️' },
+        { name: 'Wellness', description: 'Overall health and wellness programs', icon: '💆' },
+        { name: 'Spiritual', description: 'Connect with your spiritual side', icon: '🕊️' },
+        { name: 'Mental Health', description: 'Focus on mental wellbeing', icon: '🧠' },
+        { name: 'Detox', description: 'Cleanse body and mind', icon: '🥗' },
+        { name: 'Fitness', description: 'Physical fitness and training', icon: '💪' },
+        { name: 'Silent', description: 'Practice silence and self-reflection', icon: '🤫' },
+        { name: 'Couples', description: 'Strengthen relationships', icon: '💑' },
+        { name: 'Weight Loss', description: 'Healthy weight management', icon: '⚖️' },
+        { name: 'Healing', description: 'Natural healing and recovery', icon: '🌿' },
+        { name: 'Ayurvedic', description: 'Traditional Ayurvedic practices', icon: '🪷' }
+      ]);
+
+    if (insertError) {
+      console.error('Error inserting sample retreat types:', insertError);
+      return false;
+    }
+
+    console.log('Successfully created retreat_types table and inserted sample data');
+    return true;
+  } catch (err) {
+    console.error('Error in verifyAndCreateRetreatTypesTable:', err);
+    return false;
+  }
+}

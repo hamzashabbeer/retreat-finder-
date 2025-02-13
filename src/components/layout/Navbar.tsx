@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, Heart, ChevronDown } from 'lucide-react';
 import { useWishlist } from '@context/WishlistContext';
+import { useAuth } from '@/context/AuthContext';
 import LogoImage from '../../assets/logos/logo.png';
 
 const currencies = [
@@ -53,6 +54,7 @@ interface NavbarProps {
 
 const Navbar: React.FC = () => {
   const { wishlist } = useWishlist();
+  const { user } = useAuth();
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState(currencies[0]);
 
@@ -62,99 +64,46 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm">
+    <header className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center">
-            <img src={LogoImage} alt="Find Retreat Logo" className="h-10 w-auto" />
-          </Link>
-
-          {/* Navigation Links */}
-          <div className="hidden md:flex items-center gap-6">
-            <Link to="/about" className="text-gray-600 hover:text-gray-900">About</Link>
-            <Link to="/help" className="text-gray-600 hover:text-gray-900">Help</Link>
-            <Link to="/retreats" className="text-gray-600 hover:text-gray-900">Featured</Link>
-            <Link to="/wishlist" className="text-gray-600 hover:text-gray-900 relative group flex items-center gap-2">
-              <span>Wishlist</span>
-              {wishlist.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-medium">
-                  {wishlist.length}
-                </span>
-              )}
-            </Link>
-            <Link 
-              to="/auth/owner/login" 
-              className="text-gray-600 hover:text-gray-900"
-            >
-              Add Retreat
+          <div className="flex items-center">
+            <Link to="/" className="flex items-center">
+              <img src={LogoImage} alt="Retreat Finder Logo" className="h-10 w-auto" />
             </Link>
           </div>
-
-          {/* Right Section */}
-          <div className="flex items-center gap-4">
-            {/* Currency Selector */}
-            <div className="hidden md:block relative">
-              <button
-                onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
-                className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+          <nav className="hidden md:flex space-x-8">
+            <Link to="/about" className="text-gray-500 hover:text-gray-900">About</Link>
+            <Link to="/help" className="text-gray-500 hover:text-gray-900">Help</Link>
+            <Link to="/featured" className="text-gray-500 hover:text-gray-900">Featured</Link>
+            <Link to="/wishlist" className="text-gray-500 hover:text-gray-900">Wishlist</Link>
+            <Link to="/dashboard/retreats/new" className="text-gray-500 hover:text-gray-900">Add Retreat</Link>
+          </nav>
+          <div className="flex items-center space-x-4">
+            <select className="form-select rounded-md border-gray-300">
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+            </select>
+            {user ? (
+              <Link
+                to="/dashboard"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
               >
-                <img 
-                  src={selectedCurrency.flag} 
-                  alt={`${selectedCurrency.code} flag`}
-                  className="w-5 h-5 rounded-sm object-cover"
-                />
-                <span className="text-sm font-medium">{selectedCurrency.code}</span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showCurrencyDropdown ? 'rotate-180' : ''}`} />
-              </button>
-
-              {/* Currency Dropdown */}
-              {showCurrencyDropdown && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-                  {currencies.map((currency) => (
-                    <button
-                      key={currency.code}
-                      onClick={() => handleCurrencySelect(currency)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors ${
-                        selectedCurrency.code === currency.code ? 'bg-gray-50' : ''
-                      }`}
-                    >
-                      <img 
-                        src={currency.flag} 
-                        alt={`${currency.code} flag`}
-                        className="w-5 h-5 rounded-sm object-cover"
-                      />
-                      <div className="text-left">
-                        <div className="text-sm font-medium text-gray-900">{currency.code}</div>
-                        <div className="text-xs text-gray-500">{currency.name}</div>
-                      </div>
-                      {selectedCurrency.code === currency.code && (
-                        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600"></div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button className="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-              <Menu className="w-6 h-6" />
-            </button>
-
-            {/* Profile Menu */}
-            <div className="hidden md:flex items-center">
-              <Link 
-                to="/auth/customer/login"
-                className="flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                Dashboard
+              </Link>
+            ) : (
+              <Link
+                to="/auth/owner/login"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
               >
                 Sign In
               </Link>
-            </div>
+            )}
           </div>
         </div>
       </div>
-    </nav>
+    </header>
   );
 };
 

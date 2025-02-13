@@ -20,19 +20,19 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
-    /* Path Aliases */
+    /* Path aliases */
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
       "@components/*": ["src/components/*"],
       "@pages/*": ["src/pages/*"],
+      "@lib/*": ["src/lib/*"],
       "@hooks/*": ["src/hooks/*"],
       "@context/*": ["src/context/*"],
       "@types": ["src/types"],
-      "@lib/*": ["src/lib/*"],
-      "@assets/*": ["src/assets/*"]
+      "@routes/*": ["src/routes/*"]
     }
   },
-  "include": ["src", "src/types/images.d.ts"],
+  "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { WishlistProvider } from './context/WishlistContext';
 import Navbar from './components/layout/Navbar';
@@ -29,17 +29,25 @@ const ProtectedRoute: React.FC<{
   requiredRole?: 'owner' | 'customer';
 }> = ({ children, requiredRole }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return <div>Loading...</div>;
   }
 
   if (!user) {
-    return <Navigate to="/auth/customer/login" />;
+    // Redirect to owner login for owner routes, customer login for customer routes
+    const loginPath = requiredRole === 'owner' ? '/auth/owner/login' : '/auth/customer/login';
+    return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
   if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to="/" />;
+    // If user is logged in but doesn't have the required role
+    if (user.role === 'owner') {
+      return <Navigate to="/dashboard" replace />;
+    } else if (user.role === 'customer') {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return <>{children}</>;
@@ -51,7 +59,10 @@ const ProtectedRoute: React.FC<{
  * Provides authentication context and routing for the application.
  * Includes protected routes for owner and customer specific pages.
  */
-function App() {
+const App = () => {
+  const location = useLocation();
+  const isDashboardRoute = location.pathname.includes('/dashboard');
+
   useEffect(() => {
     // Test Supabase connection on app load
     testSupabaseConnection().then(isConnected => {
@@ -67,8 +78,8 @@ function App() {
     <AuthProvider>
       <WishlistProvider>
         <div className="min-h-screen bg-gray-50 flex flex-col">
-          <Navbar />
-          <main className="flex-grow">
+          {!isDashboardRoute && <Navbar />}
+          <main className={!isDashboardRoute ? 'pt-16' : ''}>
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<HomePage />} />
@@ -86,7 +97,7 @@ function App() {
 
               {/* Protected Owner Routes */}
               <Route
-                path="/dashboard"
+                path="/dashboard/*"
                 element={
                   <ProtectedRoute requiredRole="owner">
                     <OwnerDashboard />
@@ -95,11 +106,11 @@ function App() {
               />
             </Routes>
           </main>
-          <Footer />
+          {!isDashboardRoute && <Footer />}
         </div>
       </WishlistProvider>
     </AuthProvider>
   );
-}
+};
 
 export default App;

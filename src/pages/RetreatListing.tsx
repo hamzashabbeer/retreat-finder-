@@ -97,9 +97,22 @@ const RetreatListing: React.FC = () => {
   const filteredRetreats = retreats.filter(retreat => {
     // Location filter from search params
     const locationParam = searchParams.get('location');
-    if (locationParam && !retreat.location.city.toLowerCase().includes(locationParam.toLowerCase()) && 
-        !retreat.location.country.toLowerCase().includes(locationParam.toLowerCase())) {
-      return false;
+    if (locationParam && locationParam !== 'Anywhere') {
+      const [cityParam, countryParam] = locationParam.split(', ');
+      const cityMatch = retreat.location.city.toLowerCase().includes(cityParam.toLowerCase());
+      const countryMatch = retreat.location.country.toLowerCase().includes(countryParam.toLowerCase());
+      if (!cityMatch && !countryMatch) {
+        return false;
+      }
+    }
+
+    // Category filter from search params
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      const categoryMatch = retreat.type.some(type => type.toLowerCase() === categoryParam.toLowerCase());
+      if (!categoryMatch) {
+        return false;
+      }
     }
 
     // Price filter
@@ -219,7 +232,7 @@ const RetreatListing: React.FC = () => {
   return (
     <div className="pt-16">
       {/* Header Section with Background */}
-      <div className="flex justify-center mb-32 relative z-10">
+      <div className="flex justify-center mb-32 relative z-[100]">
         <div className="relative w-[1373px] rounded-3xl mt-8">
           {/* Background Image */}
           <div className="h-[400px] rounded-3xl overflow-hidden">

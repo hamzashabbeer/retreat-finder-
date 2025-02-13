@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import SearchBar from '@components/forms/SearchBar';
-import RetreatCard from '@components/common/RetreatCard';
+import SearchBar from '../components/forms/SearchBar';
+import RetreatCard from '../components/common/RetreatCard';
 import { Check } from 'lucide-react';
-import type { Retreat } from '@types';
+import type { Retreat } from '../types';
 
 const HomePage: React.FC = () => {
   // Mock data for featured retreats
@@ -98,7 +98,7 @@ const HomePage: React.FC = () => {
   return (
     <div>
       {/* Hero Section */}
-      <div className="w-[1150px] mx-auto pt-[100px] pb-20">
+      <div className="relative w-[1150px] mx-auto pt-[100px] pb-20 z-[1000]">
         <div className="flex justify-between items-center">
           {/* Left Column - Text */}
           <div className="w-[450px] space-y-6 text-center">
@@ -173,7 +173,7 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* Featured In Section */}
-      <div className="w-full bg-[#F1F5F9] py-16">
+      <div className="relative w-full bg-[#F1F5F9] py-16 z-[1]">
         <div className="w-[1150px] mx-auto">
           <div className="text-center mb-14">
             <div className="inline-flex items-center gap-3 mb-3">
@@ -230,7 +230,7 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* About Section */}
-      <div className="w-full bg-white py-24">
+      <div className="relative w-full bg-white py-24 z-[1]">
         <div className="max-w-[1150px] mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
             {/* Left Content */}

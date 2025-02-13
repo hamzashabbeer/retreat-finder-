@@ -1,97 +1,59 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@lib/supabase';
 
-const OwnerLogin: React.FC = () => {
+const OwnerLogin = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Get the redirect path from location state, or default to dashboard
+  const from = (location.state as any)?.from?.pathname || '/dashboard';
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setIsLoading(true);
-    
+    if (loading) return; // Prevent multiple submissions
+
     try {
-      // Step 1: Try to sign in
-      console.log('🔑 Starting login process...');
-      console.log('📧 Attempting to sign in with email:', email);
-      
+      setLoading(true);
+      setError(null);
+
+      // Sign in with password
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (signInError) {
-        console.error('❌ Sign in error:', signInError);
-        throw new Error(`Login failed: ${signInError.message}`);
-      }
+      if (signInError) throw signInError;
 
       if (!authData?.user) {
-        console.error('❌ No user data returned');
-        throw new Error('No user data returned from authentication');
+        throw new Error('No user data returned');
       }
 
-      console.log('✅ Successfully signed in user:', authData.user.id);
+      // Get user profile to verify role
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', authData.user.id)
+        .single();
 
-      try {
-        // Step 2: Try to create profile first (in case it doesn't exist)
-        console.log('👤 Attempting to create/verify profile...');
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: authData.user.id,
-              role: 'owner',
-              full_name: email.split('@')[0],
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }
-          ])
-          .single();
+      if (profileError) throw profileError;
 
-        if (insertError) {
-          console.log('ℹ️ Insert result:', insertError.message);
-          if (!insertError.message.includes('duplicate')) {
-            console.error('❌ Error creating profile:', insertError);
-            throw insertError;
-          }
-        }
-
-        // Step 3: Get the profile (whether it was just created or already existed)
-        console.log('🔍 Fetching user profile...');
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', authData.user.id)
-          .single();
-
-        if (profileError) {
-          console.error('❌ Error fetching profile:', profileError);
-          throw profileError;
-        }
-
-        console.log('📋 Profile data:', profileData);
-
-        if (profileData.role !== 'owner') {
-          console.error('❌ User is not an owner');
-          throw new Error('Unauthorized. Only retreat owners can access this area.');
-        }
-
-        // If we get here, the profile exists and is an owner
-        console.log('✅ Successfully verified owner profile');
-        navigate('/dashboard');
-      } catch (profileErr) {
-        console.error('❌ Profile error:', profileErr);
-        throw new Error('Error setting up user profile. Please contact support.');
+      if (profileData?.role !== 'owner') {
+        throw new Error('Unauthorized. Only retreat owners can access this area.');
       }
+
+      // If we get here, login was successful and user is an owner
+      console.log('Login successful, redirecting to dashboard...');
+      navigate('/dashboard', { replace: true });
+
     } catch (err) {
-      console.error('❌ Login error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to login. Please try again.');
-    } finally {
-      setIsLoading(false);
+      console.error('Error logging in:', err);
+      setError(err instanceof Error ? err.message : 'Failed to log in');
+      setLoading(false);
     }
   };
 
@@ -111,13 +73,13 @@ const OwnerLogin: React.FC = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
-              <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                <span className="block sm:inline">{error}</span>
-              </div>
-            )}
-            
+          {error && (
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative">
+              {error}
+            </div>
+          )}
+
+          <form className="space-y-6" onSubmit={handleLogin}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email address
@@ -131,7 +93,7 @@ const OwnerLogin: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
               </div>
             </div>
@@ -149,7 +111,7 @@ const OwnerLogin: React.FC = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 />
               </div>
             </div>
@@ -177,10 +139,10 @@ const OwnerLogin: React.FC = () => {
             <div>
               <button
                 type="submit"
-                disabled={isLoading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                disabled={loading}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'Signing in...' : 'Sign in'}
+                {loading ? 'Signing in...' : 'Sign in'}
               </button>
             </div>
           </form>

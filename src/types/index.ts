@@ -22,11 +22,21 @@ export interface Price {
  * Retreat Types
  */
 export interface Retreat {
-  id: number | string;
+  id: string;
   title: string;
   description: string;
-  location: Location;
-  price: Price;
+  location: {
+    city: string;
+    country: string;
+    coordinates: {
+      lat: number;
+      lng: number;
+    };
+  };
+  price: {
+    amount: number;
+    currency: string;
+  };
   duration: number;
   startDate: string;
   endDate: string;
@@ -36,6 +46,19 @@ export interface Retreat {
   hostId: string;
   rating: number;
   reviewCount: number;
+  summary: string;
+  features: string;
+  benefits: string;
+  whatsIncluded: string;
+  whatsNotIncluded: string;
+  staffInsights: string;
+  reviews: number;
+  atmosphere: string[];
+  skillLevel: string[];
+  area: string[];
+  food: string[];
+  ageGroup: string[];
+  roomType: string[];
 }
 
 /**
@@ -45,6 +68,7 @@ export interface UserProfile {
   id: string;
   role: 'owner' | 'customer';
   full_name: string;
+  email: string;
   created_at: string;
   updated_at: string;
 }
@@ -99,3 +123,66 @@ export interface AuthContextType {
   signOut: () => Promise<void>;
   signUp: (email: string, password: string, role: 'owner' | 'customer') => Promise<void>;
 }
+
+/**
+ * Retreat Filter Options
+ */
+export interface RetreatFilters {
+  atmosphere: string[];
+  skillLevel: string[];
+  area: string[];
+  food: string[];
+  features: string[];
+  ageGroup: string[];
+  roomType: string[];
+}
+
+export const FilterOptions = {
+  atmosphere: [
+    'Women Only',
+    'Men Only',
+    'For Solo Travelers',
+    'Couples Only',
+    'Family Friendly',
+    'Alcohol Free',
+    'Couples Friendly',
+    'Child-friendly',
+    'Pet-friendly'
+  ],
+  skillLevel: [
+    'Beginner',
+    'Intermediate',
+    'Advanced'
+  ],
+  area: [
+    'Close to Nature',
+    'Mountain',
+    'Near the Beach',
+    'Forest',
+    'Jungle',
+    'City'
+  ],
+  food: [
+    'Vegetarian',
+    'Vegan',
+    'Raw',
+    'Organic',
+    'Gluten Free',
+    'Dairy-free'
+  ],
+  features: [
+    'Meals Included',
+    'Free Cancellation',
+    'Airport Pickup'
+  ],
+  ageGroup: [
+    '18-24',
+    '25-40',
+    '41-60',
+    '60+'
+  ],
+  roomType: [
+    'Private',
+    'Shared'
+  ]
+} as const;
