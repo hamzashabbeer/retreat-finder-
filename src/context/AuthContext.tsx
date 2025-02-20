@@ -53,20 +53,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch user profile from profiles table
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user:', userId);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('auth_user_id', userId)
         .single();
 
       if (error) {
         console.error('Error fetching user profile:', error);
+        throw error;
+      }
+
+      if (!data) {
+        console.log('No profile found for user:', userId);
         setUser(null);
       } else {
+        console.log('Profile found:', data);
         setUser(data);
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('Error in fetchUserProfile:', error);
       setUser(null);
     } finally {
       setLoading(false);
@@ -94,31 +102,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Sign up with email and password
   const signUp = async (email: string, password: string, role: 'owner' | 'customer') => {
     try {
+      console.log('Starting signup process for:', email, 'with role:', role);
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
 
-      if (error) throw error;
-      if (data.user) {
-        // Create profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: data.user.id,
-              role,
-              full_name: email.split('@')[0], // Default name from email
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            },
-          ]);
-
-        if (profileError) throw profileError;
-        await fetchUserProfile(data.user.id);
+      if (error) {
+        console.error('Signup error:', error);
+        throw error;
       }
+
+      if (!data?.user) {
+        console.error('No user data returned from signup');
+        throw new Error('No user data returned from signup');
+      }
+
+      console.log('Auth signup successful, creating profile...');
+
+      // Create profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            auth_user_id: data.user.id,
+            email: email,
+            role: role,
+            full_name: email.split('@')[0], // Default name from email
+          }
+        ])
+        .select()
+        .single();
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        throw profileError;
+      }
+
+      console.log('Profile created successfully:', profile);
+      
+      // Fetch the complete profile
+      await fetchUserProfile(data.user.id);
+      
+      return { user: data.user, profile };
     } catch (error) {
-      console.error('Error signing up:', error);
+      console.error('Error in signup process:', error);
       throw error;
     }
   };

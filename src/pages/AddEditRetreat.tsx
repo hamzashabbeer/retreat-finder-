@@ -1,23 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@lib/supabase';
+import { supabase, setupImageStorage } from '@lib/supabase';
 import { 
-  ChevronLeft,
-  MapPin, 
-  Tag, 
-  Calendar,
-  DollarSign,
-  ImageIcon,
-  UtensilsIcon,
-  Check, 
-  X, 
-  Star,
-  PlusCircle
-} from 'lucide-react';
+  ArrowLeftCircleIcon,
+  MapPinIcon, 
+  TagIcon, 
+  CalendarIcon,
+  BanknotesIcon,
+  PhotoIcon,
+  BeakerIcon,
+  CheckIcon, 
+  XMarkIcon, 
+  StarIcon,
+  PlusCircleIcon
+} from '@heroicons/react/24/outline';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import type { Retreat } from '@types';
 import { FilterOptions } from '@types';
+import ImageLibrary from '@components/forms/ImageLibrary';
+import ImageSelectionModal from '@components/forms/ImageSelectionModal';
 
 interface LocationOption {
   id: string;
@@ -39,36 +41,36 @@ const AddEditRetreat: React.FC = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [currentStep, setCurrentStep] = React.useState(1);
   const [retreatTypes, setRetreatTypes] = useState<RetreatType[]>([]);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   const [formData, setFormData] = React.useState<Partial<Retreat>>({
     title: '',
     description: '',
-    location: {
-      city: '',
-      country: '',
-      coordinates: {
-        lat: 0,
-        lng: 0
-      }
-    },
+    location_id: '',
     price: {
       amount: 0,
       currency: 'USD'
     },
     duration: 7,
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    start_date: new Date().toISOString(),
+    end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     type: [],
     amenities: [],
     images: [],
     summary: '',
     features: '',
     benefits: '',
-    whatsIncluded: '',
-    whatsNotIncluded: '',
-    reviews: 0,
+    whats_included: '',
+    whats_not_included: '',
+    staff_insights: '',
+    atmosphere: [],
+    skill_level: [],
+    area: [],
+    food: [],
+    age_group: [],
+    room_type: [],
     rating: 0,
-    reviewCount: 0
+    review_count: 0
   });
 
   const [locations, setLocations] = useState<LocationOption[]>([]);
@@ -90,6 +92,7 @@ const AddEditRetreat: React.FC = () => {
 
         if (fetchError) throw fetchError;
         setFormData(data);
+        setSelectedLocation(data.location_id);
       } catch (err) {
         console.error('Error fetching retreat:', err);
         setError(err instanceof Error ? err.message : 'Failed to load retreat');
@@ -139,6 +142,22 @@ const AddEditRetreat: React.FC = () => {
     fetchRetreatTypes();
   }, []);
 
+  // Add setup effect
+  useEffect(() => {
+    const initializeImageStorage = async () => {
+      try {
+        const success = await setupImageStorage();
+        if (!success) {
+          console.error('Failed to initialize image storage');
+        }
+      } catch (err) {
+        console.error('Error initializing image storage:', err);
+      }
+    };
+
+    initializeImageStorage();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -146,7 +165,7 @@ const AddEditRetreat: React.FC = () => {
 
     try {
       // Basic required fields for step 1
-      const step1Fields = ['title', 'description', 'location', 'price', 'duration', 'startDate', 'endDate'] as const;
+      const step1Fields = ['title', 'description', 'location_id', 'price', 'duration', 'start_date', 'end_date'] as const;
       const missingStep1Fields = step1Fields.filter(field => !formData[field as keyof typeof formData]);
 
       if (missingStep1Fields.length > 0) {
@@ -161,32 +180,65 @@ const AddEditRetreat: React.FC = () => {
         return;
       }
 
-      // Format dates to ISO strings
-      const startDate = formData.startDate ? new Date(formData.startDate).toISOString() : null;
-      const endDate = formData.endDate ? new Date(formData.endDate).toISOString() : null;
+      console.log('Current user:', user); // Debug log
+
+      // Get the user's profile ID
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+        throw new Error('Error fetching user profile. Please try again.');
+      }
+      if (!profileData) {
+        console.error('No profile found for user:', user.id);
+        throw new Error('No profile found. Please ensure you have created a profile.');
+      }
+
+      console.log('Profile data:', profileData); // Debug log
 
       // Only include fields that exist in the database schema
       const dataToSubmit = {
         title: formData.title || '',
         description: formData.description || '',
-        location: formData.location || { city: '', country: '', coordinates: { lat: 0, lng: 0 } },
+        location_id: formData.location_id,
         price: formData.price || { amount: 0, currency: 'USD' },
         duration: parseInt(String(formData.duration || '0')),
-        start_date: startDate,
-        end_date: endDate,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
         type: formData.type || [],
         amenities: formData.amenities || [],
         images: formData.images || [],
-        host_id: user.id,
+        summary: formData.summary || '',
+        features: formData.features || '',
+        benefits: formData.benefits || '',
+        whats_included: formData.whats_included || '',
+        whats_not_included: formData.whats_not_included || '',
+        staff_insights: formData.staff_insights || '',
+        atmosphere: formData.atmosphere || [],
+        skill_level: formData.skill_level || [],
+        area: formData.area || [],
+        food: formData.food || [],
+        age_group: formData.age_group || [],
+        room_type: formData.room_type || [],
+        host_id: profileData.id, // Use profile ID instead of auth ID
         rating: parseFloat(String(formData.rating || '0')),
-        review_count: parseInt(String(formData.reviewCount || '0'))
+        review_count: parseInt(String(formData.review_count || '0'))
       };
 
       console.log('Submitting data:', dataToSubmit);
 
       const { data, error: saveError } = await supabase
           .from('retreats')
-        .insert([dataToSubmit])
+        .upsert([
+          {
+            ...(id ? { id } : {}), // Include id if it exists (editing)
+            ...dataToSubmit
+          }
+        ])
         .select()
         .single();
 
@@ -217,13 +269,11 @@ const AddEditRetreat: React.FC = () => {
     }));
   };
 
-  const handleLocationChange = (field: string, value: string) => {
+  const handleLocationSelect = (locationId: string) => {
+    setSelectedLocation(locationId);
     setFormData(prev => ({
       ...prev,
-      location: {
-        ...(prev.location || { city: '', country: '', coordinates: { lat: 0, lng: 0 } }),
-        [field]: value
-      }
+      location_id: locationId
     }));
   };
 
@@ -243,6 +293,13 @@ const AddEditRetreat: React.FC = () => {
 
   const handlePrevStep = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleImageSelect = (urls: string[]) => {
+    setFormData(prev => ({
+      ...prev,
+      images: urls
+    }));
   };
 
   // Function to render step content
@@ -291,26 +348,19 @@ const AddEditRetreat: React.FC = () => {
                       <select
                         value={selectedLocation}
                         onChange={(e) => {
-                          const location = locations.find(loc => loc.id === e.target.value);
-                          setSelectedLocation(e.target.value);
-                          if (location) {
+                          const locationId = e.target.value;
+                          setSelectedLocation(locationId);
                             setFormData(prev => ({
                               ...prev,
-                              location: {
-                                city: location.city,
-                                country: location.country,
-                                coordinates: { lat: 0, lng: 0 }
-                              }
-                            }));
-                          }
+                            location_id: locationId
+                          }));
                         }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        required
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="">Select a location</option>
                         {locations.map((location) => (
                           <option key={location.id} value={location.id}>
-                            {location.city} • {location.country}
+                            {location.city}, {location.country}
                           </option>
                         ))}
                       </select>
@@ -397,14 +447,14 @@ const AddEditRetreat: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
                       <input
                         type="date"
-                        name="startDate"
-                        value={formData.startDate?.split('T')[0]}
+                        name="start_date"
+                        value={formData.start_date?.split('T')[0]}
                         onChange={(e) => {
                           handleInputChange(e);
                           // Update duration when start date changes
-                          if (formData.endDate) {
+                          if (formData.end_date) {
                             const start = new Date(e.target.value);
-                            const end = new Date(formData.endDate);
+                            const end = new Date(formData.end_date);
                             const diffTime = Math.abs(end.getTime() - start.getTime());
                             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                             setFormData(prev => ({
@@ -421,13 +471,13 @@ const AddEditRetreat: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
                       <input
                         type="date"
-                        name="endDate"
-                        value={formData.endDate?.split('T')[0]}
+                        name="end_date"
+                        value={formData.end_date?.split('T')[0]}
                         onChange={(e) => {
                           handleInputChange(e);
                           // Update duration when end date changes
-                          if (formData.startDate) {
-                            const start = new Date(formData.startDate);
+                          if (formData.start_date) {
+                            const start = new Date(formData.start_date);
                             const end = new Date(e.target.value);
                             const diffTime = Math.abs(end.getTime() - start.getTime());
                             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -474,8 +524,8 @@ const AddEditRetreat: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Review Count</label>
                       <input
                       type="number"
-                      name="reviewCount"
-                      value={formData.reviewCount || 0}
+                      name="review_count"
+                      value={formData.review_count || 0}
                         onChange={handleInputChange}
                       min="0"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -493,57 +543,51 @@ const AddEditRetreat: React.FC = () => {
           <div className="space-y-6">
             {/* Image Upload Section */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">Media</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {formData.images?.map((image, index) => (
-                  <div key={index} className="relative group">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-gray-900">Images</h3>
+                <button
+                  type="button"
+                  onClick={() => setIsImageModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                >
+                  <PhotoIcon className="w-5 h-5" />
+                  Select Images
+                </button>
+                </div>
+
+              {/* Preview selected images */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {formData.images.map((url, index) => (
+                  <div key={index} className="relative group aspect-w-16 aspect-h-9">
                     <img
-                      src={image}
+                      src={url}
                       alt={`Retreat image ${index + 1}`}
-                      className="w-full h-48 object-cover rounded-lg"
+                      className="object-cover w-full h-full rounded-lg"
                     />
                     <button
                       type="button"
                       onClick={() => {
-                        const newImages = [...(formData.images || [])];
-                        newImages.splice(index, 1);
-                        setFormData(prev => ({ ...prev, images: newImages }));
+                        const newImages = formData.images.filter((_, i) => i !== index);
+                        handleArrayInputChange('images', newImages);
                       }}
                       className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <X className="w-4 h-4" />
+                      <XMarkIcon className="w-4 h-4" />
                     </button>
-                </div>
-                ))}
-                
-                <label className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-500 transition-colors">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={async (e) => {
-                      const files = Array.from(e.target.files || []);
-                      const newImages = files.map(file => URL.createObjectURL(file));
-                      setFormData(prev => ({
-                        ...prev,
-                        images: [...(prev.images || []), ...newImages]
-                      }));
-                    }}
-                  />
-                  <div className="space-y-2">
-                    <div className="mx-auto w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
-                      <ImageIcon className="w-6 h-6 text-gray-400" />
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      Click to upload or drag and drop
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      PNG, JPG up to 10MB
-                    </div>
                   </div>
-                </label>
+                ))}
               </div>
+
+              {/* Image Selection Modal */}
+              <ImageSelectionModal
+                isOpen={isImageModalOpen}
+                onClose={() => setIsImageModalOpen(false)}
+                onImageSelect={(urls) => {
+                  handleArrayInputChange('images', urls);
+                }}
+                selectedImages={formData.images}
+                multiple={true}
+              />
             </div>
 
             {/* Filter Options */}
@@ -585,12 +629,12 @@ const AddEditRetreat: React.FC = () => {
                     <label key={option} className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-full text-sm cursor-pointer hover:bg-gray-50">
                       <input
                         type="checkbox"
-                        checked={formData.skillLevel?.includes(option) || false}
+                        checked={formData.skill_level?.includes(option) || false}
                         onChange={(e) => {
                           const newSkillLevel = e.target.checked
-                            ? [...(formData.skillLevel || []), option]
-                            : (formData.skillLevel || []).filter(item => item !== option);
-                          handleArrayInputChange('skillLevel', newSkillLevel);
+                            ? [...(formData.skill_level || []), option]
+                            : (formData.skill_level || []).filter(item => item !== option);
+                          handleArrayInputChange('skill_level', newSkillLevel);
                         }}
                         className="mr-2"
                       />
@@ -660,12 +704,12 @@ const AddEditRetreat: React.FC = () => {
                     <label key={option} className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-full text-sm cursor-pointer hover:bg-gray-50">
                       <input
                         type="checkbox"
-                        checked={formData.ageGroup?.includes(option) || false}
+                        checked={formData.age_group?.includes(option) || false}
                         onChange={(e) => {
                           const newAgeGroup = e.target.checked
-                            ? [...(formData.ageGroup || []), option]
-                            : (formData.ageGroup || []).filter(item => item !== option);
-                          handleArrayInputChange('ageGroup', newAgeGroup);
+                            ? [...(formData.age_group || []), option]
+                            : (formData.age_group || []).filter(item => item !== option);
+                          handleArrayInputChange('age_group', newAgeGroup);
                         }}
                         className="mr-2"
                       />
@@ -685,12 +729,12 @@ const AddEditRetreat: React.FC = () => {
                     <label key={option} className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-full text-sm cursor-pointer hover:bg-gray-50">
                       <input
                         type="checkbox"
-                        checked={formData.roomType?.includes(option) || false}
+                        checked={formData.room_type?.includes(option) || false}
                         onChange={(e) => {
                           const newRoomType = e.target.checked
-                            ? [...(formData.roomType || []), option]
-                            : (formData.roomType || []).filter(item => item !== option);
-                          handleArrayInputChange('roomType', newRoomType);
+                            ? [...(formData.room_type || []), option]
+                            : (formData.room_type || []).filter(item => item !== option);
+                          handleArrayInputChange('room_type', newRoomType);
                         }}
                         className="mr-2"
                       />
@@ -704,7 +748,8 @@ const AddEditRetreat: React.FC = () => {
         );
       case 3:
         return (
-          <div className="space-y-6">
+            <div className="space-y-8">
+            {renderImagesSection()}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Summary */}
               <div className="space-y-4">
@@ -766,9 +811,9 @@ const AddEditRetreat: React.FC = () => {
                         className="p-2 text-gray-400 hover:text-gray-600"
                       >
                         {index === (formData.features?.split('\n') || ['']).length - 1 ? (
-                          <PlusCircle className="w-5 h-5" />
+                          <PlusCircleIcon className="w-5 h-5" />
                         ) : (
-                          <X className="w-5 h-5" />
+                          <XMarkIcon className="w-5 h-5" />
                         )}
                       </button>
                   </div>
@@ -819,9 +864,9 @@ const AddEditRetreat: React.FC = () => {
                         className="p-2 text-gray-400 hover:text-gray-600"
                       >
                         {index === (formData.benefits?.split('\n') || ['']).length - 1 ? (
-                          <PlusCircle className="w-5 h-5" />
+                          <PlusCircleIcon className="w-5 h-5" />
                         ) : (
-                          <X className="w-5 h-5" />
+                          <XMarkIcon className="w-5 h-5" />
                         )}
                       </button>
                   </div>
@@ -835,17 +880,17 @@ const AddEditRetreat: React.FC = () => {
                   What's Included
                 </label>
                 <div className="space-y-2">
-                  {(formData.whatsIncluded?.split('\n') || ['']).map((item, index) => (
+                  {(formData.whats_included?.split('\n') || ['']).map((item, index) => (
                     <div key={index} className="flex items-center gap-2">
                       <input
                         type="text"
                         value={item}
                         onChange={(e) => {
-                          const newItems = formData.whatsIncluded?.split('\n') || [''];
+                          const newItems = formData.whats_included?.split('\n') || [''];
                           newItems[index] = e.target.value;
                           handleInputChange({
                             target: {
-                              name: 'whatsIncluded',
+                              name: 'whats_included',
                               value: newItems.join('\n')
                             }
                           } as any);
@@ -856,7 +901,7 @@ const AddEditRetreat: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          const newItems = formData.whatsIncluded?.split('\n') || [''];
+                          const newItems = formData.whats_included?.split('\n') || [''];
                           if (index === newItems.length - 1) {
                             newItems.push('');
                           } else {
@@ -864,17 +909,17 @@ const AddEditRetreat: React.FC = () => {
                           }
                           handleInputChange({
                             target: {
-                              name: 'whatsIncluded',
+                              name: 'whats_included',
                               value: newItems.join('\n')
                             }
                           } as any);
                         }}
                         className="p-2 text-gray-400 hover:text-gray-600"
                       >
-                        {index === (formData.whatsIncluded?.split('\n') || ['']).length - 1 ? (
-                          <PlusCircle className="w-5 h-5" />
+                        {index === (formData.whats_included?.split('\n') || ['']).length - 1 ? (
+                          <PlusCircleIcon className="w-5 h-5" />
                         ) : (
-                          <X className="w-5 h-5" />
+                          <XMarkIcon className="w-5 h-5" />
                         )}
                       </button>
                 </div>
@@ -888,17 +933,17 @@ const AddEditRetreat: React.FC = () => {
                   What's Not Included
                 </label>
                 <div className="space-y-2">
-                  {(formData.whatsNotIncluded?.split('\n') || ['']).map((item, index) => (
+                  {(formData.whats_not_included?.split('\n') || ['']).map((item, index) => (
                     <div key={index} className="flex items-center gap-2">
                       <input
                         type="text"
                         value={item}
                         onChange={(e) => {
-                          const newItems = formData.whatsNotIncluded?.split('\n') || [''];
+                          const newItems = formData.whats_not_included?.split('\n') || [''];
                           newItems[index] = e.target.value;
                           handleInputChange({
                             target: {
-                              name: 'whatsNotIncluded',
+                              name: 'whats_not_included',
                               value: newItems.join('\n')
                             }
                           } as any);
@@ -909,7 +954,7 @@ const AddEditRetreat: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          const newItems = formData.whatsNotIncluded?.split('\n') || [''];
+                          const newItems = formData.whats_not_included?.split('\n') || [''];
                           if (index === newItems.length - 1) {
                             newItems.push('');
                           } else {
@@ -917,17 +962,17 @@ const AddEditRetreat: React.FC = () => {
                           }
                           handleInputChange({
                             target: {
-                              name: 'whatsNotIncluded',
+                              name: 'whats_not_included',
                               value: newItems.join('\n')
                             }
                           } as any);
                         }}
                         className="p-2 text-gray-400 hover:text-gray-600"
                       >
-                        {index === (formData.whatsNotIncluded?.split('\n') || ['']).length - 1 ? (
-                          <PlusCircle className="w-5 h-5" />
+                        {index === (formData.whats_not_included?.split('\n') || ['']).length - 1 ? (
+                          <PlusCircleIcon className="w-5 h-5" />
                         ) : (
-                          <X className="w-5 h-5" />
+                          <XMarkIcon className="w-5 h-5" />
                         )}
                       </button>
                     </div>
@@ -941,6 +986,56 @@ const AddEditRetreat: React.FC = () => {
         return null;
     }
   };
+
+  const renderImagesSection = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium text-gray-900">Images</h3>
+        <button
+          type="button"
+          onClick={() => setIsImageModalOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+        >
+          <PhotoIcon className="w-5 h-5" />
+          Select Images
+        </button>
+      </div>
+
+      {/* Preview selected images */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        {formData.images.map((url, index) => (
+          <div key={index} className="relative group aspect-w-16 aspect-h-9">
+            <img
+              src={url}
+              alt={`Retreat image ${index + 1}`}
+              className="object-cover w-full h-full rounded-lg"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const newImages = formData.images.filter((_, i) => i !== index);
+                handleArrayInputChange('images', newImages);
+              }}
+              className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <XMarkIcon className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Image Selection Modal */}
+      <ImageSelectionModal
+        isOpen={isImageModalOpen}
+        onClose={() => setIsImageModalOpen(false)}
+        onImageSelect={(urls) => {
+          handleArrayInputChange('images', urls);
+        }}
+        selectedImages={formData.images}
+        multiple={true}
+      />
+    </div>
+  );
 
   if (loading) {
     return (
@@ -957,10 +1052,10 @@ const AddEditRetreat: React.FC = () => {
           {/* Back and Save Buttons */}
           <div className="flex justify-between items-center mb-8">
             <button
-              onClick={handlePrevStep}
+              onClick={() => navigate(-1)}
               className="flex items-center text-gray-500 hover:text-gray-700 transition-colors"
             >
-              <ChevronLeft className="h-5 w-5 mr-2" />
+              <ArrowLeftCircleIcon className="h-5 w-5 mr-2" />
               <span>Back</span>
             </button>
             <button
@@ -1047,7 +1142,7 @@ const AddEditRetreat: React.FC = () => {
                   Previous
                 </button>
               )}
-              {currentStep < 3 ? (
+              {currentStep < 3 && (
                 <button
                   type="button"
                   onClick={handleNextStep}
@@ -1055,7 +1150,8 @@ const AddEditRetreat: React.FC = () => {
                 >
                   Next
                 </button>
-              ) : (
+              )}
+              {currentStep === 3 && (
                 <button
                   type="submit"
                   disabled={saving}

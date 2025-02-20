@@ -24,32 +24,60 @@ export const useRetreats = () => {
 
       let query = supabase
         .from('retreats')
-        .select('*');
+        .select(`
+          *,
+          location:locations(
+            id,
+            city,
+            country
+          )
+        `);
 
       // Apply filters
       if (filters) {
-        if (filters.location) {
-          query = query.ilike('location->>city', `%${filters.location}%`);
+        // Location filter
+        if (filters.location && filters.location !== 'Anywhere') {
+          const [city = '', country = ''] = filters.location.split(', ');
+          const { data: locationData } = await supabase
+            .from('locations')
+            .select('id')
+            .or(`city.ilike.%${city}%,country.ilike.%${country}%`);
+
+          if (locationData && locationData.length > 0) {
+            const locationIds = locationData.map(loc => loc.id);
+            query = query.in('location_id', locationIds);
+          }
         }
 
+        // Date filter
         if (filters.startDate) {
-          query = query.gte('startDate', filters.startDate);
+          query = query.gte('start_date', new Date(filters.startDate).toISOString());
         }
 
         if (filters.endDate) {
-          query = query.lte('endDate', filters.endDate);
+          query = query.lte('end_date', new Date(filters.endDate).toISOString());
         }
 
+        // Category filter
         if (filters.type && filters.type.length > 0) {
-          query = query.contains('type', filters.type);
+          query = query.overlaps('type', filters.type);
         }
 
+        // Price range filter
         if (filters.priceRange) {
           query = query
-            .gte('price->amount', filters.priceRange[0])
-            .lte('price->amount', filters.priceRange[1]);
+            .gte('price->amount', parseInt(filters.priceRange[0]))
+            .lte('price->amount', parseInt(filters.priceRange[1]));
         }
 
+        // Duration filter
+        if (filters.duration) {
+          query = query
+            .gte('duration', parseInt(filters.duration[0]))
+            .lte('duration', parseInt(filters.duration[1]));
+        }
+
+        // Amenities filter
         if (filters.amenities && filters.amenities.length > 0) {
           query = query.contains('amenities', filters.amenities);
         }

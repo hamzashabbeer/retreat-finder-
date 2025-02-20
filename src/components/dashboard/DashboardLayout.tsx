@@ -37,9 +37,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const fetchUserProfile = async () => {
     try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!authUser) {
+      if (!user) {
         navigate('/login');
         return;
       }
@@ -47,13 +47,22 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', authUser.id)
+        .eq('auth_user_id', user.id)
         .single();
 
-      if (error) throw error;
-      setUser(profile);
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        setUser(null);
+      } else if (profile) {
+        console.log('Fetched profile:', profile); // Debug log
+        setUser(profile);
+      } else {
+        console.log('No profile found for user:', user.id);
+        setUser(null);
+      }
     } catch (err) {
       console.error('Error fetching user profile:', err);
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -111,10 +120,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      {/* Sidebar */}
       <aside
         className={`${
           isSidebarOpen ? "w-80" : "w-20"
-        } bg-white shadow-xl transition-all duration-300 ease-in-out relative border-r border-gray-100`}
+        } bg-white shadow-xl transition-all duration-300 ease-in-out h-screen z-[9999] shrink-0`}
       >
         <div className="flex h-full flex-col">
           {/* Header Section */}
@@ -256,7 +266,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto bg-gray-50 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-200">
-        <div className="p-8">
+        <div className="max-w-7xl mx-auto p-8">
           {children}
         </div>
       </main>

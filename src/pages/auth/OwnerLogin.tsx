@@ -1,58 +1,67 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@lib/supabase';
 
 const OwnerLogin = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Get the redirect path from location state, or default to dashboard
-  const from = (location.state as any)?.from?.pathname || '/dashboard';
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return; // Prevent multiple submissions
+    if (loading) return;
 
     try {
       setLoading(true);
       setError(null);
 
-      // Sign in with password
+      // Step 1: Sign in with password
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (signInError) throw signInError;
+      if (signInError) {
+        console.error('Authentication error:', signInError);
+        if (signInError.message.includes('Invalid login credentials')) {
+          throw new Error('Invalid email or password. Please check your credentials and try again.');
+        }
+        throw signInError;
+      }
 
       if (!authData?.user) {
-        throw new Error('No user data returned');
+        throw new Error('No user data returned from authentication');
       }
 
-      // Get user profile to verify role
+      // Step 2: Get user profile to verify role
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('role')
-        .eq('id', authData.user.id)
+        .select('*')
+        .eq('auth_user_id', authData.user.id)
         .single();
 
-      if (profileError) throw profileError;
-
-      if (profileData?.role !== 'owner') {
-        throw new Error('Unauthorized. Only retreat owners can access this area.');
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+        throw new Error('Error fetching user profile. Please try again.');
       }
 
-      // If we get here, login was successful and user is an owner
-      console.log('Login successful, redirecting to dashboard...');
-      navigate('/dashboard', { replace: true });
+      if (!profileData) {
+        throw new Error('No profile found. Please contact support.');
+      }
+
+      if (profileData.role !== 'owner') {
+        throw new Error('Access denied. Only retreat owners can access this area.');
+      }
+
+      // If we get here, login was successful
+      navigate('/dashboard');
 
     } catch (err) {
-      console.error('Error logging in:', err);
-      setError(err instanceof Error ? err.message : 'Failed to log in');
+      console.error('Login error:', err);
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
@@ -61,14 +70,8 @@ const OwnerLogin = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Sign in to your Retreat Owner Account
+          Retreat Owner Login
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Or{' '}
-          <Link to="/auth/owner/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
-            register as a retreat owner
-          </Link>
-        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -116,26 +119,6 @@ const OwnerLogin = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                  Remember me
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <Link to="/auth/forgot-password" className="font-medium text-indigo-600 hover:text-indigo-500">
-                  Forgot your password?
-                </Link>
-              </div>
-            </div>
-
             <div>
               <button
                 type="submit"
@@ -146,27 +129,6 @@ const OwnerLogin = () => {
               </button>
             </div>
           </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Looking to book a retreat?
-                </span>
-              </div>
-            </div>
-            <div className="mt-6 text-center">
-              <Link
-                to="/auth/customer/login"
-                className="font-medium text-indigo-600 hover:text-indigo-500"
-              >
-                Sign in as a customer
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
     </div>

@@ -18,7 +18,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    flowType: 'pkce'
   }
 });
 
@@ -198,6 +199,9 @@ export const verifyDatabaseStructure = async () => {
       throw createRetreatsInsertError;
     }
 
+    // Set up image storage
+    await setupImageStorage();
+
     console.log('Database structure verified successfully');
     return true;
   } catch (err) {
@@ -320,6 +324,31 @@ export async function verifyAndCreateRetreatTypesTable() {
     return true;
   } catch (err) {
     console.error('Error in verifyAndCreateRetreatTypesTable:', err);
+    return false;
+  }
+}
+
+export async function setupImageStorage() {
+  try {
+    console.log('Setting up image storage...');
+
+    // Create storage bucket if it doesn't exist
+    const { error: storageError } = await supabase.storage.createBucket('retreat-images', {
+      public: true,
+      fileSizeLimit: 5242880, // 5MB
+      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp']
+    });
+
+    // Ignore error if bucket already exists
+    if (storageError && !storageError.message.includes('already exists')) {
+      console.error('Error creating storage bucket:', storageError);
+      throw storageError;
+    }
+
+    console.log('Image storage setup completed successfully');
+    return true;
+  } catch (err) {
+    console.error('Error setting up image storage:', err);
     return false;
   }
 }

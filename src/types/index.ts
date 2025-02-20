@@ -26,39 +26,38 @@ export interface Retreat {
   title: string;
   description: string;
   location: {
+    id: string;
     city: string;
     country: string;
-    coordinates: {
-      lat: number;
-      lng: number;
-    };
   };
+  location_id: string;
   price: {
     amount: number;
     currency: string;
   };
   duration: number;
-  startDate: string;
-  endDate: string;
+  start_date: string;
+  end_date: string;
   type: string[];
   amenities: string[];
   images: string[];
-  hostId: string;
-  rating: number;
-  reviewCount: number;
   summary: string;
   features: string;
   benefits: string;
-  whatsIncluded: string;
-  whatsNotIncluded: string;
-  staffInsights: string;
-  reviews: number;
+  whats_included: string;
+  whats_not_included: string;
+  staff_insights: string;
   atmosphere: string[];
-  skillLevel: string[];
+  skill_level: string[];
   area: string[];
   food: string[];
-  ageGroup: string[];
-  roomType: string[];
+  age_group: string[];
+  room_type: string[];
+  host_id: string;
+  rating: number;
+  review_count: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 /**
@@ -96,9 +95,14 @@ export interface SearchFilters {
   startDate?: string;
   endDate?: string;
   type?: string[];
-  priceRange?: [number, number];
+  priceRange?: [string, string];
+  duration?: [string, string];
   amenities?: string[];
-  duration?: string[];
+  skillLevel?: string[];
+  area?: string[];
+  food?: string[];
+  ageGroup?: string[];
+  roomType?: string[];
 }
 
 /**
@@ -121,7 +125,10 @@ export interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  signUp: (email: string, password: string, role: 'owner' | 'customer') => Promise<void>;
+  signUp: (email: string, password: string, role: 'owner' | 'customer') => Promise<{
+    user: any;
+    profile: UserProfile;
+  }>;
 }
 
 /**

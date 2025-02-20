@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Create profiles table
 CREATE TABLE IF NOT EXISTS profiles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    auth_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     full_name TEXT,
     email TEXT UNIQUE,
     role TEXT CHECK (role IN ('owner', 'customer')),
@@ -89,11 +89,11 @@ CREATE POLICY "Public profiles are viewable by everyone"
 
 CREATE POLICY "Users can insert their own profile"
     ON profiles FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
+    WITH CHECK (auth.uid() = auth_user_id);
 
 CREATE POLICY "Users can update own profile"
     ON profiles FOR UPDATE
-    USING (auth.uid() = user_id);
+    USING (auth.uid() = auth_user_id);
 
 -- Locations policies
 ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
@@ -126,30 +126,54 @@ CREATE POLICY "Retreats are viewable by everyone"
 
 CREATE POLICY "Users can insert their own retreats"
     ON retreats FOR INSERT
-    WITH CHECK (auth.uid()::text = host_id::text);
+    WITH CHECK (
+        host_id IN (
+            SELECT id FROM profiles WHERE auth_user_id = auth.uid()
+        )
+    );
 
 CREATE POLICY "Users can update own retreats"
     ON retreats FOR UPDATE
-    USING (auth.uid()::text = host_id::text);
+    USING (
+        host_id IN (
+            SELECT id FROM profiles WHERE auth_user_id = auth.uid()
+        )
+    );
 
 CREATE POLICY "Users can delete own retreats"
     ON retreats FOR DELETE
-    USING (auth.uid()::text = host_id::text);
+    USING (
+        host_id IN (
+            SELECT id FROM profiles WHERE auth_user_id = auth.uid()
+        )
+    );
 
 -- Bookings policies
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view their own bookings"
     ON bookings FOR SELECT
-    USING (auth.uid()::text = user_id::text);
+    USING (
+        user_id IN (
+            SELECT id FROM profiles WHERE auth_user_id = auth.uid()
+        )
+    );
 
 CREATE POLICY "Users can insert their own bookings"
     ON bookings FOR INSERT
-    WITH CHECK (auth.uid()::text = user_id::text);
+    WITH CHECK (
+        user_id IN (
+            SELECT id FROM profiles WHERE auth_user_id = auth.uid()
+        )
+    );
 
 CREATE POLICY "Users can update their own bookings"
     ON bookings FOR UPDATE
-    USING (auth.uid()::text = user_id::text);
+    USING (
+        user_id IN (
+            SELECT id FROM profiles WHERE auth_user_id = auth.uid()
+        )
+    );
 
 -- Reviews policies
 ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
@@ -160,11 +184,19 @@ CREATE POLICY "Reviews are viewable by everyone"
 
 CREATE POLICY "Users can insert their own reviews"
     ON reviews FOR INSERT
-    WITH CHECK (auth.uid()::text = user_id::text);
+    WITH CHECK (
+        user_id IN (
+            SELECT id FROM profiles WHERE auth_user_id = auth.uid()
+        )
+    );
 
 CREATE POLICY "Users can update their own reviews"
     ON reviews FOR UPDATE
-    USING (auth.uid()::text = user_id::text);
+    USING (
+        user_id IN (
+            SELECT id FROM profiles WHERE auth_user_id = auth.uid()
+        )
+    );
 
 -- Create functions
 

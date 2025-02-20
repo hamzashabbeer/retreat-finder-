@@ -19,10 +19,18 @@ const RetreatList: React.FC = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('retreats')
-        .select('*')
+        .select(`
+          *,
+          location:location_id(
+            city,
+            country
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
+      console.log('Fetched retreats:', data); // Debug log
       setRetreats(data || []);
     } catch (err) {
       console.error('Error fetching retreats:', err);
@@ -39,7 +47,7 @@ const RetreatList: React.FC = () => {
       const { error } = await supabase
         .from('retreats')
         .delete()
-        .eq('id', id.toString());
+        .eq('id', id);
 
       if (error) throw error;
       setRetreats(retreats.filter(retreat => retreat.id !== id));
@@ -51,12 +59,16 @@ const RetreatList: React.FC = () => {
 
   const filteredRetreats = retreats.filter(retreat =>
     retreat.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    retreat.location.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    retreat.location.country.toLowerCase().includes(searchTerm.toLowerCase())
+    (retreat.location?.city || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (retreat.location?.country || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
-    return <div className="p-6 text-center text-gray-500">Loading retreats...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+      </div>
+    );
   }
 
   return (
@@ -104,17 +116,17 @@ const RetreatList: React.FC = () => {
                   <div className="flex-1">
                     <h3 className="text-lg font-medium text-gray-900">{retreat.title}</h3>
                     <div className="mt-1 text-sm text-gray-500">
-                      {retreat.location.city}, {retreat.location.country}
+                      {retreat.location ? `${retreat.location.city}, ${retreat.location.country}` : 'Location not specified'}
                     </div>
                     <div className="mt-2 flex items-center gap-4">
                       <span className="text-sm text-gray-600">
-                        ${retreat.price.amount} per person
+                        ${retreat.price?.amount || 0} {retreat.price?.currency || 'USD'}
                       </span>
                       <span className="text-sm text-gray-600">
-                        {retreat.duration} days
+                        {retreat.duration || 0} days
                       </span>
                       <div className="flex gap-1">
-                        {retreat.type.map((type, index) => (
+                        {retreat.type?.map((type, index) => (
                           <span
                             key={index}
                             className="px-2 py-1 text-xs font-medium bg-blue-50 text-blue-600 rounded-full"

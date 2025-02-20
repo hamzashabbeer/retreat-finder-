@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, MapPin, Calendar, Tag } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
+import type { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
 import 'react-day-picker/dist/style.css';
 import { createPortal } from 'react-dom';
@@ -17,11 +18,6 @@ interface SearchParams {
     startDate: string;
     endDate: string;
   };
-}
-
-interface DateRange {
-  from: Date;
-  to?: Date;
 }
 
 interface Location {
@@ -43,9 +39,19 @@ interface RetreatType {
  */
 const SearchBar: React.FC = () => {
   const navigate = useNavigate();
-  const [location, setLocation] = useState('');
-  const [category, setCategory] = useState('');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [location, setLocation] = useState(searchParams.get('location') || '');
+  const [category, setCategory] = useState(searchParams.get('category') || '');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    return startDate && endDate
+      ? {
+          from: new Date(startDate),
+          to: new Date(endDate)
+        }
+      : undefined;
+  });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -136,20 +142,53 @@ const SearchBar: React.FC = () => {
     "Ayurvedic"
   ];
 
-  /**
-   * Handles form submission and navigation to search results
-   * @param e - Form submission event
-   */
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const params = new URLSearchParams();
+  const handleSearch = () => {
+    const params = new URLSearchParams(searchParams);
     
-    if (location) params.append('location', location);
-    if (category) params.append('category', category);
-    if (dateRange?.from) params.append('startDate', format(dateRange.from, 'yyyy-MM-dd'));
-    if (dateRange?.to) params.append('endDate', format(dateRange.to, 'yyyy-MM-dd'));
+    if (location && location !== 'Anywhere') {
+      params.set('location', location);
+    } else {
+      params.delete('location');
+    }
     
+    if (category) {
+      params.set('category', category);
+    } else {
+      params.delete('category');
+    }
+    
+    if (dateRange?.from) {
+      params.set('startDate', dateRange.from.toISOString());
+    } else {
+      params.delete('startDate');
+    }
+    
+    if (dateRange?.to) {
+      params.set('endDate', dateRange.to.toISOString());
+    } else {
+      params.delete('endDate');
+    }
+    
+    // Navigate to the retreat listing page with the search parameters
     navigate(`/retreats?${params.toString()}`);
+  };
+
+  const handleCategorySelect = (selectedCategory: string) => {
+    setCategory(selectedCategory);
+    const params = new URLSearchParams(searchParams);
+    params.set('category', selectedCategory);
+    setSearchParams(params);
+    setShowCategoryDropdown(false);
+  };
+
+  const handleDateChange = (range: DateRange | undefined) => {
+    setDateRange(range);
+    if (range?.from && range?.to) {
+      const params = new URLSearchParams(searchParams);
+      params.set('startDate', range.from.toISOString());
+      params.set('endDate', range.to.toISOString());
+      setSearchParams(params);
+    }
   };
 
   const renderDropdown = (
@@ -175,8 +214,8 @@ const SearchBar: React.FC = () => {
   };
 
   return (
-    <div className="relative z-[100]">
-      <form onSubmit={handleSubmit} className="relative w-[920px] mx-auto">
+    <div className="relative z-[9999]">
+      <form onSubmit={handleSearch} className="relative w-[920px] mx-auto">
         <div className="flex flex-col md:flex-row items-center justify-between bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-100 py-1.5">
           {/* Location */}
           <div className="relative md:w-[260px] group">
@@ -266,7 +305,7 @@ const SearchBar: React.FC = () => {
                       type="button"
                       className="w-full px-5 py-3 text-left hover:bg-gray-50 text-gray-600 hover:text-gray-900"
                       onClick={() => {
-                        setCategory(type.name);
+                        handleCategorySelect(type.name);
                         setShowCategoryDropdown(false);
                       }}
                     >
@@ -311,7 +350,7 @@ const SearchBar: React.FC = () => {
                 <DayPicker
                   mode="range"
                   selected={dateRange}
-                  onSelect={setDateRange as any}
+                  onSelect={handleDateChange}
                   numberOfMonths={2}
                   className="bg-white"
                 />
